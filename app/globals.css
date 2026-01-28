@@ -1,0 +1,143 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Updated Color Palette - High End Design */
+  --color-primary: #165DFF; /* Deep Ocean Blue */
+  --color-primary-dark: #0E42D2;
+  --color-primary-light: #E8F3FF;
+  
+  --color-secondary: #ffffff;
+  
+  /* Functional Colors */
+  --color-success: #36D399; /* Mint Green */
+  --color-warning: #FFAB00; /* Warm Lemon */
+  --color-danger: #F53F3F; /* Standard Danger */
+  --color-media: #926BFF; /* Fog Purple */
+  
+  /* Neutral Colors */
+  --color-background: #F5F7FA; /* Light Grey Blue */
+  --color-surface: #FFFFFF;
+  --color-sidebar: #1D2129; /* Deep Space Black */
+  
+  --color-text-main: #1D2129; /* Title/Important */
+  --color-text-body: #4E5969; /* Body/Desc */
+  --color-text-muted: #86909C; /* Aux/Hint */
+  
+  /* Chinese-optimized Font Stack */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "微软雅黑", "Hiragino Sans GB", "Heiti SC", system-ui, -apple-system, sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Fira Code", "Menlo", "Monaco", "Courier New", monospace;
+
+  /* Custom Animations */
+  @keyframes breathe {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+  }
+  @keyframes progress-loading {
+    0% { transform: translateX(-100%) scaleX(0.2); }
+    50% { transform: translateX(0) scaleX(0.5); }
+    100% { transform: translateX(100%) scaleX(0.2); }
+  }
+}
+
+.animate-progress-loading {
+  animation: progress-loading 1.5s infinite ease-in-out;
+}
+
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-text-main);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* Global Transitions */
+.btn, .card, button, a {
+  transition: all 0.3s ease;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Typography Overrides for Chinese */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text-main);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+p {
+  color: var(--color-text-body);
+  margin-bottom: 1em;
+  text-align: justify;
+}
+
+/* Custom Scrollbar for Dropdowns and Menus */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E5E6EB;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #C9CDD4;
+}
+
+/* Animation Utilities */
+.animate-breathe {
+  animation: breathe 2s infinite ease-in-out;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9CDD4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #86909C;
+}

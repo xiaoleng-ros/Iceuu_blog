@@ -1,0 +1,178 @@
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Clock, Tag, Flame, MessageSquare, Archive, Calendar, GraduationCap } from 'lucide-react';
+import { useSiteConfig } from '@/lib/hooks/useSiteConfig';
+import IconCloud from './IconCloud';
+import { useState, useEffect } from 'react';
+
+interface SidebarProps {
+  config: any;
+  tags: string[];
+  totalPosts?: number;
+  posts?: any[]; // For "Random/Popular" posts
+}
+
+export default function Sidebar({ config: initialConfig, tags, totalPosts = 0, posts = [] }: SidebarProps) {
+  const config = useSiteConfig(initialConfig);
+  const [svgIcons, setSvgIcons] = useState<string[]>([]);
+  
+  // 自动获取图标列表
+  useEffect(() => {
+    fetch('/api/icons')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSvgIcons(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch icons:', err));
+  }, []);
+  
+  // Calculate days running from config or fallback date
+  const startDateStr = config.site_start_date || '2026-01-26';
+  const startDate = new Date(startDateStr);
+  const daysRunning = Math.max(0, Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+  // Mock Comments
+  const recentComments = [
+    { id: 1, user: 'yy 哥', avatar: 'https://github.com/shadcn.png', content: '博主这篇写的太好了，受益匪浅！', time: '2024.01.24' },
+    { id: 2, user: 'FrontendDev', avatar: 'https://github.com/vercel.png', content: '这个布局是怎么实现的？求教程', time: '2024.01.23' },
+    { id: 3, user: 'ReactLover', avatar: 'https://github.com/nextjs.png', content: '期待更新更多 Next.js 实战技巧', time: '2024.01.22' },
+  ];
+
+  // Mock Archives
+  const archives = [
+    { year: 2025, count: 3 },
+    { year: 2024, count: 12 },
+    { year: 2023, count: 45 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Profile Card */}
+      <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl">
+        <div className="h-24 bg-[url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center relative">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
+            <div className="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-white shadow-md">
+              <img 
+                src={config.avatar_url || 'https://github.com/shadcn.png'} 
+                alt="Profile"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== 'https://github.com/shadcn.png') {
+                    target.src = 'https://github.com/shadcn.png';
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+        <CardContent className="pt-12 pb-6 flex flex-col items-center">
+          <h3 className="font-bold text-lg text-gray-900 text-center">
+            {config.site_name || '赵阿卷'}
+          </h3>
+          <p className="text-sm text-gray-500 mt-2 px-4 text-center break-words max-w-full">
+            {(config.intro || '写代码，爱生活').trim()}
+          </p>
+          
+          {/* 社交账号模块 */}
+          <div className="w-full mt-6 px-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-[1px] flex-1 bg-gray-100"></div>
+              <span className="text-[12px] font-medium text-gray-400 tracking-wider">社交账号</span>
+              <div className="h-[1px] flex-1 bg-gray-100"></div>
+            </div>
+            
+            <div className="flex justify-center items-center gap-4">
+              {config.github_url && (
+                <a 
+                  href={config.github_url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-black/10 transition-all duration-300"
+                  title="GitHub"
+                >
+                  <img src="/svg/github.svg" alt="GitHub" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                </a>
+              )}
+              {config.gitee_url && (
+                <a 
+                  href={config.gitee_url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-[#c71d23]/10 transition-all duration-300"
+                  title="Gitee"
+                >
+                  <img src="/svg/gitee.svg" alt="Gitee" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                </a>
+              )}
+              {config.wechat_url && (
+                <a 
+                  href={config.wechat_url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-[#07c160]/10 transition-all duration-300"
+                  title="微信"
+                >
+                  <img src="/svg/weixin.svg" alt="微信" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                </a>
+              )}
+              {config.douyin_url && (
+                <a 
+                  href={config.douyin_url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-black/5 transition-all duration-300"
+                  title="抖音"
+                >
+                  <img src="/svg/抖音.svg" alt="抖音" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                </a>
+              )}
+              {config.qq_url && (
+                <a 
+                  href={config.qq_url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-[#12b7f5]/10 transition-all duration-300"
+                  title="QQ"
+                >
+                  <img src="/svg/QQ.svg" alt="QQ" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                </a>
+              )}
+            </div>
+          </div>
+
+        </CardContent>
+      </Card>
+
+      {/* Stats Card */}
+      <Card className="border-none shadow-sm bg-white rounded-2xl p-5">
+        <div className="flex items-center justify-center">
+           <div className="flex-1 text-center">
+             <div className="text-[13px] text-[#86909C] mb-1.5 font-medium">站点运行</div>
+             <div className="text-xl font-bold text-[#1D2129] tracking-tight">
+               {daysRunning} <span className="text-sm font-semibold ml-0.5">天</span>
+             </div>
+           </div>
+        </div>
+      </Card>
+
+      {/* Icon Cloud (3D Tag Cloud) */}
+      <Card className="border-none shadow-sm bg-white rounded-2xl">
+        <CardHeader className="pb-3 border-b border-gray-50 px-5 pt-5">
+          <CardTitle className="text-sm font-bold flex items-center justify-center gap-2 text-blue-500">
+            <GraduationCap className="w-5 h-5" /> 学无止境
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-2 flex justify-center items-center min-h-[240px]">
+          <IconCloud icons={svgIcons} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

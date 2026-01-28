@@ -1,0 +1,151 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { ChevronDown, Settings, LogOut, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
+
+/**
+ * 后台管理页面顶部导航栏组件
+ * 包含用户信息展示和快捷菜单功能
+ */
+export default function AdminHeader() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState<{
+    fullName: string;
+    avatarUrl: string;
+  }>({
+    fullName: '管理员',
+    avatarUrl: '',
+  });
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // 获取并监听当前登录用户信息
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserData({
+          fullName: user.user_metadata?.full_name || '管理员',
+          avatarUrl: user.user_metadata?.avatar_url || '',
+        });
+      }
+    };
+
+    fetchUser();
+
+    // 监听认证状态变化（包括用户信息更新）
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+        const user = session?.user;
+        if (user) {
+          setUserData({
+            fullName: user.user_metadata?.full_name || '管理员',
+            avatarUrl: user.user_metadata?.avatar_url || '',
+          });
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  /**
+   * 处理退出登录
+   */
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/admin/login');
+    router.refresh();
+  };
+
+  /**
+   * 跳转到系统设置
+   */
+  const handleGoToSettings = () => {
+    router.push('/admin/system');
+    setIsOpen(false);
+  };
+
+  return (
+    <header className="h-20 flex items-center justify-end px-4 md:px-8 sticky top-0 z-30 bg-[#F2F9F2]/80 backdrop-blur-md border-b border-[#E8F3E8]">
+      <div className="relative mt-2" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 md:gap-3 hover:bg-white/50 p-1.5 rounded-lg transition-all duration-200 group"
+        >
+          <div className="text-right hidden sm:block">
+            <p className="text-[14px] font-bold text-[#1D2129] leading-tight group-hover:text-[#165DFF] transition-colors">
+              {userData.fullName}
+            </p>
+            <p className="text-[12px] text-[#86909C]">管理员</p>
+          </div>
+          
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center">
+            {userData.avatarUrl ? (
+              <img 
+                src={userData.avatarUrl} 
+                alt="Avatar" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#165DFF]/10 to-[#165DFF]/5 flex items-center justify-center">
+                <User className="text-[#165DFF]" size={20} />
+              </div>
+            )}
+          </div>
+          
+          <ChevronDown 
+            className={cn(
+              "text-[#86909C] transition-transform duration-200 group-hover:text-[#1D2129]",
+              isOpen && "rotate-180"
+            )} 
+            size={14} 
+          />
+        </button>
+
+        {/* 下拉菜单 */}
+        {isOpen && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-[#E5E6EB] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-4 py-2 sm:hidden border-b border-[#F2F3F5] mb-1">
+              <p className="text-[14px] font-bold text-[#1D2129] truncate">{userData.fullName}</p>
+              <p className="text-[12px] text-[#86909C]">管理员</p>
+            </div>
+            
+            <button
+              onClick={handleGoToSettings}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#4E5969] hover:bg-[#F2F3F5] hover:text-[#165DFF] transition-colors group"
+            >
+              <Settings size={18} className="text-[#86909C] group-hover:text-[#165DFF]" />
+              <span className="font-medium">系统设置</span>
+            </button>
+            <div className="h-[1px] bg-[#F2F3F5] my-1 mx-2" />
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#F53F3F] hover:bg-[#FFF2F0] transition-colors group"
+            >
+              <LogOut size={18} className="text-[#F53F3F]/70 group-hover:text-[#F53F3F]" />
+              <span className="font-medium">退出登录</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
