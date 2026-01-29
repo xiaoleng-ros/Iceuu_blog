@@ -33,6 +33,9 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'date-fns', 'clsx', 'tailwind-merge'],
+  },
 };
 
 export default nextConfig;

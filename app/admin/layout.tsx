@@ -1,8 +1,11 @@
 'use client';
-import Sidebar from '@/components/admin/Sidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
+import dynamic from 'next/dynamic';
 import AuthGuard from '@/components/admin/AuthGuard';
 import { usePathname } from 'next/navigation';
+
+// 动态导入侧边栏和顶栏，ssr: false 确保它们不进入服务端 Worker 压缩包
+const Sidebar = dynamic(() => import('@/components/admin/Sidebar'), { ssr: false });
+const AdminHeader = dynamic(() => import('@/components/admin/AdminHeader'), { ssr: false });
 
 export default function AdminLayout({
   children,
