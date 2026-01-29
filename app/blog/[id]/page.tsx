@@ -19,21 +19,6 @@ interface Props {
   }>;
 }
 
-// Generate static params for latest posts
-export async function generateStaticParams() {
-  const { data: posts } = await supabase
-    .from('blogs')
-    .select('id')
-    .eq('draft', false)
-    .or('is_deleted.is.null,is_deleted.eq.false')
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  return (posts || []).map((post) => ({
-    id: post.id,
-  }));
-}
-
 async function getBlog(id: string) {
   // 1. 获取当前文章
   const { data: blog, error } = await supabase
@@ -100,69 +85,56 @@ export default async function BlogDetailPage({ params }: Props) {
     notFound();
   }
 
-  const htmlContent = marked.parse(blog.content || '');
-
-  // 根据分类名称映射固定背景图
-  const categoryBackgrounds: Record<string, string> = {
-    '生活边角料': '/life.jpg',
-    '情绪随笔': '/mood.jpg',
-    '干货分享': '/tips.jpg',
-    '成长复盘': '/growth.jpg',
-  };
-
-  const backgroundImage = categoryBackgrounds[blog.category] || siteConfig.home_background_url;
+  // Parse markdown content
+  const contentHtml = await marked(blog.content || '');
 
   return (
     <PublicLayout headerTransparent={true}>
       <Hero 
-        backgroundImage={backgroundImage} 
-        postMetadata={{
-          title: blog.title,
-          category: blog.category,
-          createdAt: formatDate(blog.created_at)
-        }}
+        backgroundImage={blog.cover_image || siteConfig.home_background_url} 
+        centerText={blog.title}
       />
       
-      <div className="bg-gray-50/50 min-h-screen relative z-10 -mt-10 md:-mt-16 pt-16 md:pt-24">
-        <div className="container mx-auto px-4 md:px-6 pb-12">
+      <div className="bg-white min-h-screen relative z-10 -mt-10 md:-mt-16 pt-16 md:pt-24 rounded-t-[40px]">
+        <div className="container mx-auto px-4 md:px-6 pb-20">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white p-8 md:p-12 rounded-2xl shadow-sm border border-gray-100">
-              {/* Content */}
-              <div 
-                className="prose prose-lg prose-slate max-w-none dark:prose-invert 
-                  prose-headings:font-bold prose-headings:tracking-tight 
-                  prose-p:text-gray-600 prose-p:leading-relaxed
-                  prose-img:rounded-xl prose-img:shadow-lg
-                  prose-a:text-blue-600 hover:prose-a:text-blue-700 prose-a:no-underline hover:prose-a:underline"
-                dangerouslySetInnerHTML={{ __html: htmlContent }} 
-              />
-
-              {/* Copyright Info */}
-              <Copyright />
-
-              {/* Navigation */}
-              <UpAndDown id={id} prev={blog.prev} next={blog.next} />
+            {/* Post Meta */}
+            <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-gray-500 border-b pb-6">
+              <time dateTime={blog.created_at}>{formatDate(blog.created_at)}</time>
+              <span className="text-gray-300">|</span>
+              <Link href={`/category/${encodeURIComponent(blog.category)}`} className="text-blue-600 hover:underline">
+                {blog.category}
+              </Link>
+              {blog.tags && blog.tags.length > 0 && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-3.5 w-3.5" />
+                    {blog.tags.map((tag: string) => (
+                      <span key={tag} className="hover:text-blue-600 cursor-default">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Tags */}
-            {blog.tags && blog.tags.length > 0 && (
-              <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <span className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Tag className="w-4 h-4" /> 相关标签:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {blog.tags.map((tag: string) => (
-                    <Link 
-                      key={tag} 
-                      href={`/?tag=${encodeURIComponent(tag.trim())}`}
-                      className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    >
-                      #{tag.trim()}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Post Content */}
+            <article 
+              className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-img:rounded-2xl"
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
+            />
+
+            {/* Copyright Info */}
+            <div className="mt-16">
+              <Copyright title={blog.title} id={blog.id} />
+            </div>
+
+            {/* Navigation */}
+            <div className="mt-12 pt-8 border-t">
+              <UpAndDown prev={blog.prev} next={blog.next} />
+            </div>
           </div>
         </div>
       </div>
