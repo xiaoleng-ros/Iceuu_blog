@@ -607,7 +607,7 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
                       
                       <Button
                         type="button"
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();

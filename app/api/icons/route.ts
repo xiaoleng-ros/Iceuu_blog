@@ -1,29 +1,50 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
 /**
  * GET /api/icons
- * 自动读取 public/svg 目录下的所有 .svg 文件
+ * Cloudflare Pages (Edge Runtime) 不支持 fs 模块
+ * 因此这里改为硬编码图标列表，或者你可以将其存入数据库
  */
+export const runtime = 'edge';
+
+const SVG_ICONS = [
+  '34 - Adobe Premiere Pro (Flat).svg',
+  'Angular.svg',
+  'Docker.svg',
+  'JavaScript.svg',
+  'MYSQL.svg',
+  'Node.js.svg',
+  'Pycharm.svg',
+  'Python.svg',
+  'QQ.svg',
+  'React.svg',
+  'Vue.svg',
+  'adobe after-effects.svg',
+  'apifox.svg',
+  'clash.svg',
+  'css.svg',
+  'gemini-ai.svg',
+  'gitee.svg',
+  'github.svg',
+  'html.svg',
+  'icons8-intellij-idea.svg',
+  'java.svg',
+  'nginx.svg',
+  'postman.svg',
+  'splayer.svg',
+  'spring-boot.svg',
+  'supabase.svg',
+  'typescript.svg',
+  'vscode.svg',
+  'webstorm.svg',
+  'weixin.svg',
+  '传输.svg',
+  '剪映.svg',
+  '抖音.svg',
+  '网易云音乐.svg',
+  '羽毛球.svg'
+];
+
 export async function GET() {
-  try {
-    const svgDirectory = path.join(process.cwd(), 'public', 'svg');
-    
-    // 检查目录是否存在
-    if (!fs.existsSync(svgDirectory)) {
-      return NextResponse.json([]);
-    }
-
-    // 读取目录下所有文件
-    const files = fs.readdirSync(svgDirectory);
-    
-    // 过滤出 .svg 文件
-    const svgFiles = files.filter(file => file.toLowerCase().endsWith('.svg'));
-
-    return NextResponse.json(svgFiles);
-  } catch (error) {
-    console.error('Failed to read icons directory:', error);
-    return NextResponse.json({ error: 'Failed to read icons' }, { status: 500 });
-  }
+  return NextResponse.json(SVG_ICONS);
 }

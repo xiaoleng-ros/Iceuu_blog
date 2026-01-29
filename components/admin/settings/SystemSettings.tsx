@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { User, Loader2, Shield, Upload, Lock, Save, Mail, FileText, UserCircle, CheckCircle2, XCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSiteStore } from '@/lib/store/useSiteStore';
 
 /**
  * Toast 提示组件
@@ -52,7 +53,11 @@ const Toast = ({
 };
 
 export default function SystemSettings() {
-  const [loading, setLoading] = useState(true);
+  const storeUser = useSiteStore((state) => state.user);
+  const updateUserInStore = useSiteStore((state) => state.updateUser);
+  const fetchUserInStore = useSiteStore((state) => state.fetchUser);
+  
+  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   
@@ -64,6 +69,19 @@ export default function SystemSettings() {
     bio: '',
     avatarUrl: '',
   });
+
+  // 使用 Store 中的用户信息初始化表单
+  useEffect(() => {
+    if (storeUser) {
+      setProfileData({
+        fullName: storeUser.fullName || '',
+        email: storeUser.email || '',
+        bio: '', // Bio 还是需要从 auth 获取，或者我们可以把 bio 也加到 store
+        avatarUrl: storeUser.avatarUrl || '',
+      });
+    }
+  }, [storeUser]);
+
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -81,6 +99,7 @@ export default function SystemSettings() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
@@ -204,6 +223,16 @@ export default function SystemSettings() {
           .upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
       }
 
+      // 强制刷新本地缓存
+      await supabase.auth.refreshSession();
+      
+      // 更新全局 Store
+      updateUserInStore({
+        fullName: profileData.fullName,
+        avatarUrl: profileData.avatarUrl,
+        email: profileData.email,
+      });
+      
       // 更新本地用户状态
       const { data: { user: updatedUser } } = await supabase.auth.getUser();
       if (updatedUser) {

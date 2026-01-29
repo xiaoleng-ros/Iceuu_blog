@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { supabase, createClientWithToken } from '@/lib/supabase';
+import { createClientWithToken } from '@/lib/supabase';
+
+export const runtime = 'edge';
 
 export async function GET(
   request: Request,

@@ -5,14 +5,20 @@ import { useState, useEffect } from 'react';
 import { Menu, X, Search, Globe, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
-import { useSiteConfig } from '@/lib/hooks/useSiteConfig';
-import { supabase } from '@/lib/supabase';
+import { useSiteStore } from '@/lib/store/useSiteStore';
 
 interface HeaderProps {
   transparent?: boolean;
 }
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  external?: boolean;
+  hasDropdown?: boolean;
+}
+
+const navItems: NavItem[] = [
   { label: '🏠 首页', href: '/' },
   { label: '👋 生活边角料', href: '/category/生活边角料' },
   { label: '📝 情绪随笔', href: '/category/情绪随笔' },
@@ -23,30 +29,14 @@ const navItems = [
 
 /**
  * 网站顶部导航栏组件
- * 包含站点名称（动态获取）、导航链接、搜索和后台入口
+ * 使用全局 Store 获取站点名称，确保页面跳转后立即同步更新
  */
 export default function Header({ transparent = false }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [initialConfig, setInitialConfig] = useState<any>(null);
   
-  // 使用实时配置 hook
-  const config = useSiteConfig(initialConfig);
-
-  // 获取初始配置
-  useEffect(() => {
-    const fetchConfig = async () => {
-      const { data } = await supabase.from('site_config').select('*');
-      if (data) {
-        const configMap = data.reduce((acc: any, curr) => {
-          acc[curr.key] = curr.value;
-          return acc;
-        }, {});
-        setInitialConfig(configMap);
-      }
-    };
-    fetchConfig();
-  }, []);
+  // 从全局 Store 中获取站点配置
+  const config = useSiteStore((state) => state.config);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -57,6 +47,7 @@ export default function Header({ transparent = false }: HeaderProps) {
   }, []);
 
   const isTransparent = transparent && !isScrolled && !isOpen;
+  // 优先从全局配置获取，Store 已实现持久化，页面跳转后可立即读取
   const siteName = config?.site_name || '赵阿卷';
 
   return (

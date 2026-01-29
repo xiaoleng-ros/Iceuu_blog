@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClientWithToken } from '@/lib/supabase';
 import { uploadImageToGitHub, getJsDelivrUrl, deleteFileFromGitHub } from '@/lib/github';
 
+export const runtime = 'edge';
+
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');

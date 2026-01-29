@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { supabase } from "@/lib/supabase";
+import StoreInitializer from "@/components/layout/StoreInitializer";
+
+export const runtime = 'edge';
 
 /**
  * 动态生成页面元数据
@@ -33,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased font-sans">
+        <StoreInitializer />
         {children}
       </body>
     </html>

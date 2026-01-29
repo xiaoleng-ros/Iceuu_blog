@@ -61,6 +61,7 @@ export default function SiteSettings() {
     site_title: '',
     site_description: '',
     site_keywords: '',
+    site_start_date: '',
     footer_text: '',
     github_url: '',
     gitee_url: '',

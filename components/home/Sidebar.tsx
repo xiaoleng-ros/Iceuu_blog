@@ -1,22 +1,25 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Clock, Tag, Flame, MessageSquare, Archive, Calendar, GraduationCap } from 'lucide-react';
-import { useSiteConfig } from '@/lib/hooks/useSiteConfig';
+import { GraduationCap } from 'lucide-react';
+import { useSiteStore } from '@/lib/store/useSiteStore';
 import IconCloud from './IconCloud';
 import { useState, useEffect } from 'react';
 
 interface SidebarProps {
-  config: any;
+  config?: any; // 保持向后兼容，但优先使用 Store
   tags: string[];
   totalPosts?: number;
   posts?: any[]; // For "Random/Popular" posts
 }
 
-export default function Sidebar({ config: initialConfig, tags, totalPosts = 0, posts = [] }: SidebarProps) {
-  const config = useSiteConfig(initialConfig);
+/**
+ * 侧边栏组件
+ * 使用全局 Store 获取站点配置，确保信息实时同步且无延迟
+ */
+export default function Sidebar({ tags, totalPosts = 0, posts = [] }: SidebarProps) {
+  // 从全局 Store 中获取站点配置
+  const config = useSiteStore((state) => state.config);
   const [svgIcons, setSvgIcons] = useState<string[]>([]);
   
   // 自动获取图标列表
@@ -32,23 +35,9 @@ export default function Sidebar({ config: initialConfig, tags, totalPosts = 0, p
   }, []);
   
   // Calculate days running from config or fallback date
-  const startDateStr = config.site_start_date || '2026-01-26';
+  const startDateStr = config.site_start_date || '2024-01-01';
   const startDate = new Date(startDateStr);
   const daysRunning = Math.max(0, Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-
-  // Mock Comments
-  const recentComments = [
-    { id: 1, user: 'yy 哥', avatar: 'https://github.com/shadcn.png', content: '博主这篇写的太好了，受益匪浅！', time: '2024.01.24' },
-    { id: 2, user: 'FrontendDev', avatar: 'https://github.com/vercel.png', content: '这个布局是怎么实现的？求教程', time: '2024.01.23' },
-    { id: 3, user: 'ReactLover', avatar: 'https://github.com/nextjs.png', content: '期待更新更多 Next.js 实战技巧', time: '2024.01.22' },
-  ];
-
-  // Mock Archives
-  const archives = [
-    { year: 2025, count: 3 },
-    { year: 2024, count: 12 },
-    { year: 2023, count: 45 },
-  ];
 
   return (
     <div className="space-y-6">

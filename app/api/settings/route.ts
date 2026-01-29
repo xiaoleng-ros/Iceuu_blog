@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
+export const runtime = 'edge';
+
 export async function GET() {
   const { data, error } = await supabase
     .from('site_config')

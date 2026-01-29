@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 
+export const runtime = 'edge';
+
 export async function GET() {
   const { data, error } = await supabase.from('tags').select('*').order('name');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

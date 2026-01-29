@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 import { deleteFileFromGitHub } from '@/lib/github';
 
+export const runtime = 'edge';
+
 /**
  * 获取媒体列表
  */
