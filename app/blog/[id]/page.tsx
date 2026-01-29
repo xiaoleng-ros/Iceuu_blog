@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Tag } from 'lucide-react';
 import { marked } from 'marked';
 
+export const runtime = 'edge';
 export const revalidate = 60; // ISR
 
 interface Props {

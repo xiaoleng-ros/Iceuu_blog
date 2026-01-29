@@ -5,6 +5,7 @@ import PostList from '@/components/home/PostList';
 import Pagination from '@/components/ui/Pagination';
 
 // Revalidate every 60 seconds
+export const runtime = 'edge';
 export const revalidate = 60;
 
 async function getCategoryPosts(category: string, page: number = 1, pageSize: number = 5) {

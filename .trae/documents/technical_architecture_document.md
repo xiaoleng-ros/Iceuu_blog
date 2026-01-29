@@ -46,7 +46,7 @@ graph TD
 
 * **HTTP客户端**: Axios + GitHub REST API
 
-* **部署平台**: Vercel
+* **部署平台**: Cloudflare Pages (使用 @cloudflare/next-on-pages)
 
 ## 3. 路由定义
 
