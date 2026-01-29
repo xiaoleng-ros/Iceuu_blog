@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import { Metadata } from 'next';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/utils';
 import PublicLayout from '@/components/layout/PublicLayout';
@@ -17,6 +18,24 @@ interface Props {
   params: Promise<{
     id: string;
   }>;
+}
+
+/**
+ * 动态生成博文详情页元数据
+ * @param {Props} props 路由参数
+ * @returns {Promise<Metadata>} 页面元数据
+ */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const { data: blog } = await supabase
+    .from('blogs')
+    .select('title')
+    .eq('id', id)
+    .single();
+
+  return {
+    title: blog ? `${blog.title} - 赵阿卷的博客` : '博文详情 - 赵阿卷的博客',
+  };
 }
 
 async function getBlog(id: string) {
@@ -128,12 +147,12 @@ export default async function BlogDetailPage({ params }: Props) {
 
             {/* Copyright Info */}
             <div className="mt-16">
-              <Copyright title={blog.title} id={blog.id} />
+              <Copyright title={blog.title} id={id} />
             </div>
 
             {/* Navigation */}
             <div className="mt-12 pt-8 border-t">
-              <UpAndDown id={blog.id} prev={blog.prev} next={blog.next} />
+              <UpAndDown id={id} prev={blog.prev} next={blog.next} />
             </div>
           </div>
         </div>

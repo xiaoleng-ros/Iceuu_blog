@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { Metadata } from 'next';
 import PublicLayout from '@/components/layout/PublicLayout';
 import Hero from '@/components/home/Hero';
 import PostList from '@/components/home/PostList';
@@ -45,7 +46,7 @@ async function getSiteConfig() {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ category: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const { category } = await params;
   const decodedCategory = decodeURIComponent(category);
   return {
