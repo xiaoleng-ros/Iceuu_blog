@@ -1,6 +1,11 @@
 'use client';
 
-import SiteSettings from '@/components/admin/settings/SiteSettings';
+import dynamic from 'next/dynamic';
+
+const SiteSettings = dynamic(() => import('@/components/admin/settings/SiteSettings'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-gray-500">正在加载设置...</div>
+});
 
 /**
  * 站点设置页面

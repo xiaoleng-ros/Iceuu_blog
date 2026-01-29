@@ -2,8 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import BlogForm from '@/components/admin/BlogForm';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
+
+// 动态导入 BlogForm 以减小服务端 Worker 体积
+const BlogForm = dynamic(() => import('@/components/admin/BlogForm'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-4 border-[#165DFF]/20 border-t-[#165DFF] rounded-full animate-spin" />
+        <span className="text-[#86909C] text-sm">正在加载编辑器...</span>
+      </div>
+    </div>
+  )
+});
 
 export default function BlogEditPage() {
   const params = useParams();

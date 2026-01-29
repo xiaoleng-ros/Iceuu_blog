@@ -1,6 +1,11 @@
 'use client';
 
-import SystemSettings from '@/components/admin/settings/SystemSettings';
+import dynamic from 'next/dynamic';
+
+const SystemSettings = dynamic(() => import('@/components/admin/settings/SystemSettings'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-gray-500">正在加载系统设置...</div>
+});
 
 /**
  * 系统设置页面

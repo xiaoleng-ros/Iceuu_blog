@@ -1,4 +1,3 @@
-import axios from 'axios';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_OWNER = process.env.GITHUB_OWNER;
@@ -63,6 +62,7 @@ interface UploadResult {
  * @param content Base64 编码的文件内容
  * @param filePath 文件路径 (e.g., "images/2024/01/test.jpg")
  * @param message 提交信息
+ * @returns {Promise<UploadResult>} 上传结果
  */
 export async function uploadImageToGitHub(
   content: string,
@@ -78,24 +78,31 @@ export async function uploadImageToGitHub(
   const url = `${GITHUB_API_URL}/${cleanPath}`;
 
   try {
-    const data = {
+    const body = JSON.stringify({
       message,
       content,
       branch: GITHUB_BRANCH,
-    };
+    });
 
-    const response = await axios.put<UploadResult>(url, data, {
+    const response = await fetch(url, {
+      method: 'PUT',
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${GITHUB_TOKEN}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json',
       },
+      body,
     });
 
-    return response.data;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(errorData.message || `GitHub API error: ${response.status}`);
+    }
+
+    return await response.json();
   } catch (error: any) {
-    console.error('GitHub Upload Error:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || 'Failed to upload image to GitHub');
+    console.error('GitHub Upload Error:', error.message);
+    throw new Error(error.message || 'Failed to upload image to GitHub');
   }
 }
 
@@ -129,37 +136,50 @@ export async function deleteFileFromGitHub(
 
   try {
     // 1. 获取文件的 SHA (GitHub 删除操作必须提供 SHA)
-    const getResponse = await axios.get(url, {
-      params: { ref: GITHUB_BRANCH },
+    const getUrl = new URL(url);
+    getUrl.searchParams.append('ref', GITHUB_BRANCH);
+
+    const getResponse = await fetch(getUrl.toString(), {
+      method: 'GET',
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${GITHUB_TOKEN}`,
         'Accept': 'application/vnd.github.v3+json',
       },
     });
 
-    const sha = getResponse.data.sha;
+    if (!getResponse.ok) {
+      if (getResponse.status === 404) {
+        console.warn(`File ${filePath} not found on GitHub, skipping deletion.`);
+        return;
+      }
+      const errorData = await getResponse.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(errorData.message || `GitHub API error (GET): ${getResponse.status}`);
+    }
+
+    const { sha } = await getResponse.json();
 
     // 2. 执行删除
-    await axios.delete(url, {
-      data: {
-        message,
-        sha,
-        branch: GITHUB_BRANCH,
-      },
+    const deleteResponse = await fetch(url, {
+      method: 'DELETE',
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${GITHUB_TOKEN}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json',
       },
+      body: JSON.stringify({
+        message,
+        sha,
+        branch: GITHUB_BRANCH,
+      }),
     });
-  } catch (error: any) {
-    // 如果文件已经不存在，静默失败
-    if (error.response?.status === 404) {
-      console.warn(`File ${filePath} not found on GitHub, skipping deletion.`);
-      return;
+
+    if (!deleteResponse.ok) {
+      const errorData = await deleteResponse.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(errorData.message || `GitHub API error (DELETE): ${deleteResponse.status}`);
     }
-    console.error('GitHub Delete Error:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || 'Failed to delete file from GitHub');
+  } catch (error: any) {
+    console.error('GitHub Delete Error:', error.message);
+    throw new Error(error.message || 'Failed to delete file from GitHub');
   }
 }
 
