@@ -133,7 +133,7 @@ export default async function BlogDetailPage({ params }: Props) {
 
             {/* Navigation */}
             <div className="mt-12 pt-8 border-t">
-              <UpAndDown prev={blog.prev} next={blog.next} />
+              <UpAndDown id={blog.id} prev={blog.prev} next={blog.next} />
             </div>
           </div>
         </div>
