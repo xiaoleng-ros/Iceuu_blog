@@ -6,4 +6,4 @@ compatibility_flags = ["nodejs_compat"]
 command = "npm run pages:build"
 
 [build.upload]
-directory = ".vercel/output/static/_worker.js"
+directory = ".vercel/output"
