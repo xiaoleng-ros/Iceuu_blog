@@ -4,6 +4,15 @@
 -- 启用 UUID 扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- 先创建更新时间触发器函数（供所有表使用）
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 用户表（扩展 Supabase Auth 用户信息）
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -110,15 +119,7 @@ INSERT INTO categories (name, slug, description) VALUES
   ('成长复盘', 'growth', '个人成长和反思')
 ON CONFLICT DO NOTHING;
 
--- 创建更新时间触发器
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- 为其他表创建更新时间触发器（函数已在开头定义）
 CREATE TRIGGER update_blogs_updated_at BEFORE UPDATE ON blogs
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
