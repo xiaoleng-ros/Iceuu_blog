@@ -1,10 +1,12 @@
+import { githubConfig, validateGithubConfig } from '@/lib/config/env';
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_OWNER = process.env.GITHUB_OWNER;
-const GITHUB_REPO = process.env.GITHUB_REPO;
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
-
-const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
+/**
+ * 获取 GitHub API URL
+ * 延迟计算，只在实际使用时才验证配置
+ */
+function getGitHubApiUrl(): string {
+  return githubConfig.apiUrl;
+}
 
 interface UploadResult {
   content: {
@@ -57,6 +59,11 @@ interface UploadResult {
   };
 }
 
+interface GitHubError {
+  message: string;
+  documentation_url?: string;
+}
+
 /**
  * 上传文件到 GitHub
  * @param content Base64 编码的文件内容
@@ -69,25 +76,25 @@ export async function uploadImageToGitHub(
   filePath: string,
   message: string = 'Upload image via Blog Admin'
 ): Promise<UploadResult> {
-  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
-    throw new Error('GitHub environment variables are missing');
+  // 验证 GitHub 配置是否完整
+  if (!validateGithubConfig()) {
+    throw new Error('GitHub 配置不完整，请检查环境变量 GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
   }
 
-  // Ensure filePath doesn't start with /
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  const url = `${GITHUB_API_URL}/${cleanPath}`;
+  const url = `${getGitHubApiUrl()}/${cleanPath}`;
 
   try {
     const body = JSON.stringify({
       message,
       content,
-      branch: GITHUB_BRANCH,
+      branch: githubConfig.branch,
     });
 
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${githubConfig.token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json',
       },
@@ -95,7 +102,7 @@ export async function uploadImageToGitHub(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      const errorData = (await response.json()) as GitHubError;
       throw new Error(errorData.message || `GitHub API error: ${response.status}`);
     }
 
@@ -111,10 +118,13 @@ export async function uploadImageToGitHub(
  * @param filePath 文件路径
  */
 export function getJsDelivrUrl(filePath: string) {
-  // Ensure filePath doesn't start with /
+  // 验证 GitHub 配置是否完整
+  if (!validateGithubConfig()) {
+    throw new Error('GitHub 配置不完整，无法生成 CDN 链接');
+  }
+  
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  // 优先使用 raw.githubusercontent.com 以确保实时性，jsDelivr 缓存可能导致延迟
-  return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${cleanPath}`;
+  return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${cleanPath}`;
 }
 
 /**
@@ -126,23 +136,22 @@ export async function deleteFileFromGitHub(
   filePath: string,
   message: string = 'Delete image via Blog Admin'
 ): Promise<void> {
-  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
-    throw new Error('GitHub environment variables are missing');
+  // 验证 GitHub 配置是否完整
+  if (!validateGithubConfig()) {
+    throw new Error('GitHub 配置不完整，请检查环境变量 GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
   }
 
-  // Ensure filePath doesn't start with /
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  const url = `${GITHUB_API_URL}/${cleanPath}`;
+  const url = `${getGitHubApiUrl()}/${cleanPath}`;
 
   try {
-    // 1. 获取文件的 SHA (GitHub 删除操作必须提供 SHA)
     const getUrl = new URL(url);
-    getUrl.searchParams.append('ref', GITHUB_BRANCH);
+    getUrl.searchParams.append('ref', githubConfig.branch);
 
     const getResponse = await fetch(getUrl.toString(), {
       method: 'GET',
       headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${githubConfig.token}`,
         'Accept': 'application/vnd.github.v3+json',
       },
     });
@@ -152,29 +161,28 @@ export async function deleteFileFromGitHub(
         console.warn(`File ${filePath} not found on GitHub, skipping deletion.`);
         return;
       }
-      const errorData = await getResponse.json().catch(() => ({ message: 'Unknown error' }));
+      const errorData = (await getResponse.json()) as GitHubError;
       throw new Error(errorData.message || `GitHub API error (GET): ${getResponse.status}`);
     }
 
     const { sha } = await getResponse.json();
 
-    // 2. 执行删除
     const deleteResponse = await fetch(url, {
       method: 'DELETE',
       headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${githubConfig.token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json',
       },
       body: JSON.stringify({
         message,
         sha,
-        branch: GITHUB_BRANCH,
+        branch: githubConfig.branch,
       }),
     });
 
     if (!deleteResponse.ok) {
-      const errorData = await deleteResponse.json().catch(() => ({ message: 'Unknown error' }));
+      const errorData = (await deleteResponse.json()) as GitHubError;
       throw new Error(errorData.message || `GitHub API error (DELETE): ${deleteResponse.status}`);
     }
   } catch (error: any) {
@@ -187,7 +195,11 @@ export async function deleteFileFromGitHub(
  * 获取文件的 Raw 访问链接 (Fallback)
  */
 export function getGitHubRawUrl(filePath: string) {
-  // Ensure filePath doesn't start with /
+  // 验证 GitHub 配置是否完整
+  if (!validateGithubConfig()) {
+    throw new Error('GitHub 配置不完整，无法生成 Raw 链接');
+  }
+  
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${cleanPath}`;
+  return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${cleanPath}`;
 }

@@ -1,21 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Missing Supabase environment variables');
-}
+import { supabaseConfig } from '@/lib/config/env';
 
 export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseKey || ''
+  supabaseConfig.url,
+  supabaseConfig.anonKey
 );
 
 export const createClientWithToken = (token: string) => {
   return createClient(
-    supabaseUrl || '',
-    supabaseKey || '',
+    supabaseConfig.url,
+    supabaseConfig.anonKey,
     {
       global: {
         headers: {
