@@ -286,3 +286,98 @@ SELECT create_admin_user();
 
 -- 创建后请删除此函数（安全考虑）
 -- DROP FUNCTION IF EXISTS create_admin_user();
+
+-- ============================================
+-- 插入示例用户数据（可选）
+-- 用于开发和测试环境
+-- ============================================
+
+-- 示例：插入一个普通用户
+-- 注意：需要先通过 Supabase Auth 创建用户，获取 UUID 后再插入 public.users 表
+/*
+-- 步骤 1: 在 Supabase Dashboard -> Authentication -> Users 中创建用户
+-- 邮箱: user@example.com
+-- 密码: user123456
+
+-- 步骤 2: 获取用户 UUID 后，执行以下插入语句
+INSERT INTO public.users (id, username, email, avatar_url, role, is_active, last_login_at, created_at)
+VALUES (
+  'USER_UUID_HERE',  -- 替换为实际的 UUID
+  '普通用户',
+  'user@example.com',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
+  'user',
+  true,
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE SET
+  username = EXCLUDED.username,
+  role = EXCLUDED.role,
+  is_active = EXCLUDED.is_active;
+
+-- 示例：插入一个编辑用户
+INSERT INTO public.users (id, username, email, avatar_url, role, is_active, last_login_at, created_at)
+VALUES (
+  'EDITOR_UUID_HERE',  -- 替换为实际的 UUID
+  '编辑用户',
+  'editor@example.com',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=editor',
+  'editor',
+  true,
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE SET
+  username = EXCLUDED.username,
+  role = EXCLUDED.role,
+  is_active = EXCLUDED.is_active;
+*/
+
+-- 或者使用以下函数批量创建示例用户（在 Supabase Dashboard 中执行）
+CREATE OR REPLACE FUNCTION create_sample_users()
+RETURNS VOID AS $$
+DECLARE
+  user1_id UUID;
+  user2_id UUID;
+BEGIN
+  -- 创建普通用户
+  SELECT id INTO user1_id FROM auth.users WHERE email = 'user@example.com';
+  IF user1_id IS NULL THEN
+    INSERT INTO auth.users (
+      id, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+    )
+    VALUES (
+      uuid_generate_v4(), 'user@example.com', crypt('user123456', gen_salt('bf')),
+      NOW(), '{"provider":"email","providers":["email"]}', '{"username":"普通用户"}', NOW(), NOW()
+    )
+    RETURNING id INTO user1_id;
+    
+    INSERT INTO public.users (id, username, email, avatar_url, role, is_active, created_at)
+    VALUES (user1_id, '普通用户', 'user@example.com', 'https://api.dicebear.com/7.x/avataaars/svg?seed=user', 'user', true, NOW());
+  END IF;
+
+  -- 创建编辑用户
+  SELECT id INTO user2_id FROM auth.users WHERE email = 'editor@example.com';
+  IF user2_id IS NULL THEN
+    INSERT INTO auth.users (
+      id, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+    )
+    VALUES (
+      uuid_generate_v4(), 'editor@example.com', crypt('editor123456', gen_salt('bf')),
+      NOW(), '{"provider":"email","providers":["email"]}', '{"username":"编辑用户"}', NOW(), NOW()
+    )
+    RETURNING id INTO user2_id;
+    
+    INSERT INTO public.users (id, username, email, avatar_url, role, is_active, created_at)
+    VALUES (user2_id, '编辑用户', 'editor@example.com', 'https://api.dicebear.com/7.x/avataaars/svg?seed=editor', 'editor', true, NOW());
+  END IF;
+  
+  RAISE NOTICE '示例用户创建完成';
+END;
+$$ LANGUAGE plpgsql;
+
+-- 取消注释以下行来创建示例用户
+-- SELECT create_sample_users();
