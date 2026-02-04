@@ -111,13 +111,35 @@ CREATE INDEX IF NOT EXISTS idx_blogs_is_deleted ON blogs(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_media_type ON media(type);
 CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(key);
 
--- 插入默认分类
+-- 如果 categories 表已存在但缺少 slug 和 description 列，则添加这些列
+DO $$
+BEGIN
+  -- 检查并添加 slug 列
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'categories' AND column_name = 'slug'
+  ) THEN
+    ALTER TABLE categories ADD COLUMN slug TEXT UNIQUE;
+  END IF;
+  
+  -- 检查并添加 description 列
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'categories' AND column_name = 'description'
+  ) THEN
+    ALTER TABLE categories ADD COLUMN description TEXT;
+  END IF;
+END $$;
+
+-- 插入默认分类（如果表结构完整）
 INSERT INTO categories (name, slug, description) VALUES
   ('生活边角料', 'life', '记录生活中的点滴'),
   ('情绪随笔', 'mood', '分享心情和感悟'),
   ('干货分享', 'knowledge', '技术知识和经验分享'),
   ('成长复盘', 'growth', '个人成长和反思')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO UPDATE SET
+  slug = EXCLUDED.slug,
+  description = EXCLUDED.description;
 
 -- 为其他表创建更新时间触发器（函数已在开头定义）
 CREATE TRIGGER update_blogs_updated_at BEFORE UPDATE ON blogs
