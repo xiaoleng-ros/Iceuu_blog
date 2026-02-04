@@ -281,7 +281,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 执行创建管理员函数
--- SELECT create_admin_user();
+SELECT create_admin_user();
 
 -- 创建后请删除此函数（安全考虑）
 -- DROP FUNCTION IF EXISTS create_admin_user();
