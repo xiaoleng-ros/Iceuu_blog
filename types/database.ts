@@ -4,9 +4,29 @@
  */
 
 /**
- * 用户信息
+ * 用户角色
+ */
+export type UserRole = 'admin' | 'user' | 'editor';
+
+/**
+ * 用户信息（public.users 表）
  */
 export interface User {
+  id: string;
+  username: string;
+  email: string;
+  avatar_url?: string;
+  role: UserRole;
+  is_active: boolean;
+  last_login_at?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Supabase Auth 用户信息
+ */
+export interface AuthUser {
   id: string;
   email: string;
   full_name?: string;
@@ -82,7 +102,7 @@ export interface Tag {
 /**
  * 数据库表类型
  */
-export type DatabaseTable = 'blogs' | 'media' | 'site_config' | 'categories' | 'tags';
+export type DatabaseTable = 'blogs' | 'media' | 'site_config' | 'categories' | 'tags' | 'users';
 
 /**
  * 分页参数
