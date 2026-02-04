@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS public.users (
   updated_at TIMESTAMP WITH TIME ZONE
 );
 
--- 创建用户更新时间触发器
+-- 创建用户更新时间触发器（如果不存在）
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -205,7 +206,7 @@ CREATE POLICY "允许认证用户更新站点配置" ON site_config
 -- 由于密码需要加密，建议在 Supabase Dashboard 中手动创建用户：
 -- 1. 进入 Authentication -> Users
 -- 2. 点击 "Add user"
--- 3. 输入邮箱: xiaoleng@example.com
+-- 3. 输入邮箱: 1873048956@qq.com
 -- 4. 输入密码: 123456789
 -- 5. 创建后复制用户的 UUID
 
@@ -216,7 +217,7 @@ INSERT INTO public.users (id, username, email, role, is_active, created_at)
 VALUES (
   'YOUR_USER_UUID',  -- 从 Supabase Auth 获取的实际 UUID
   'xiaoleng',
-  'xiaoleng@example.com',
+  '1873048956@qq.com',
   'admin',
   true,
   NOW()
@@ -233,7 +234,7 @@ DECLARE
   new_user_id UUID;
 BEGIN
   -- 检查用户是否已存在
-  SELECT id INTO new_user_id FROM auth.users WHERE email = 'xiaoleng@example.com';
+  SELECT id INTO new_user_id FROM auth.users WHERE email = '1873048956@qq.com';
   
   IF new_user_id IS NULL THEN
     -- 创建 auth 用户
@@ -249,7 +250,7 @@ BEGIN
     )
     VALUES (
       uuid_generate_v4(),
-      'xiaoleng@example.com',
+      '1873048956@qq.com',
       crypt('123456789', gen_salt('bf')),  -- 使用 bcrypt 加密密码
       NOW(),
       '{"provider":"email","providers":["email"]}',
@@ -261,7 +262,7 @@ BEGIN
     
     -- 创建 public.users 记录
     INSERT INTO public.users (id, username, email, role, is_active, created_at)
-    VALUES (new_user_id, 'xiaoleng', 'xiaoleng@example.com', 'admin', true, NOW());
+    VALUES (new_user_id, 'xiaoleng', '1873048956@qq.com', 'admin', true, NOW());
     
     RAISE NOTICE '管理员账号创建成功: xiaoleng / 123456789';
   ELSE
