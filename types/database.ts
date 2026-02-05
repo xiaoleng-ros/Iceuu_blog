@@ -1,9 +1,4 @@
 /**
- * 数据库类型定义
- * 定义 Supabase 数据库表结构类型
- */
-
-/**
  * 用户角色
  */
 export type UserRole = 'admin' | 'user' | 'editor';

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Edit, Trash2, Plus, Eye, Loader2, Search, Download, ChevronLeft, ChevronRight, RotateCcw, XCircle } from 'lucide-react';
+import { Edit, Trash2, Eye, Loader2, Search, ChevronLeft, ChevronRight, RotateCcw, XCircle } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
 import { Toast, EmptyState } from '@/components/admin/pages/CommonComponents';
 
@@ -61,28 +61,27 @@ export default function BlogListPage() {
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   /**
-   * 处理排序点击
+   * 处理博客列表排序
+   * @param key - 排序字段名，对应 Blog 对象的键
+   * @param multiSort - 是否开启多字段复合排序，默认为 false
+   * @returns void
    */
   const handleSort = (key: keyof Blog, multiSort = false) => {
     setSortConfigs(prev => {
-      const existingIndex = prev.findIndex(c => c.key === key);
+      const existingConfig = prev.find(c => c.key === key);
       
       if (multiSort) {
-        // 多字段排序逻辑
-        if (existingIndex > -1) {
-          const currentDir = prev[existingIndex].direction;
-          const nextDir = currentDir === 'desc' ? 'asc' : 'desc';
-          const newConfigs = [...prev];
-          newConfigs[existingIndex] = { key, direction: nextDir };
-          return newConfigs;
+        // 多字段排序逻辑：如果已存在则切换方向，不存在则添加
+        if (existingConfig) {
+          const nextDir = existingConfig.direction === 'desc' ? 'asc' : 'desc';
+          return prev.map(c => c.key === key ? { ...c, direction: nextDir } : c);
         } else {
           return [...prev, { key, direction: 'desc' }];
         }
       } else {
-        // 单字段排序逻辑（清除其他字段）
-        if (existingIndex > -1) {
-          const currentDir = prev[existingIndex].direction;
-          const nextDir = currentDir === 'desc' ? 'asc' : 'desc';
+        // 单字段排序逻辑：清除其他排序，仅保留当前字段
+        if (existingConfig) {
+          const nextDir = existingConfig.direction === 'desc' ? 'asc' : 'desc';
           return [{ key, direction: nextDir }];
         } else {
           return [{ key, direction: 'desc' }];
@@ -92,7 +91,8 @@ export default function BlogListPage() {
   };
 
   /**
-   * 应用排序逻辑
+   * 根据当前排序配置 (sortConfigs) 对博客列表进行多字段排序
+   * @returns Blog[] - 排序后的博客数组
    */
   const sortedBlogs = useMemo(() => {
     if (sortConfigs.length === 0) return blogs;
@@ -129,7 +129,8 @@ export default function BlogListPage() {
   }, [blogs, sortConfigs]);
 
   /**
-   * 分页后的数据
+   * 根据当前页码和每页条数，对排序后的博客列表进行切片分页
+   * @returns Blog[] - 当前页显示的博客数组
    */
   const paginatedBlogs = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -139,7 +140,9 @@ export default function BlogListPage() {
   const totalPages = Math.ceil(sortedBlogs.length / pageSize) || 1;
 
   /**
-   * 渲染排序图标 (明显的 ▲▼ 分开设计)
+   * 渲染表格列的排序指示器组件
+   * @param columnKey - 当前列对应的 Blog 字段键名
+   * @returns JSX.Element - 包含上下箭头的排序图标组件
    */
   const SortIndicator = ({ columnKey }: { columnKey: keyof Blog }) => {
     const config = sortConfigs.find(c => c.key === columnKey);
@@ -169,14 +172,18 @@ export default function BlogListPage() {
   };
 
   /**
-   * 显示提示信息
+   * 显示 Toast 提示信息
+   * @param message - 提示文本内容
+   * @param type - 提示类型：'success' | 'error' | 'info' | 'warning'，默认为 'info'
+   * @returns void
    */
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
   /**
-   * 获取分类和标签
+   * 异步获取系统中的所有分类和标签
+   * @returns Promise<void>
    */
   const fetchFilters = async () => {
     try {
@@ -191,7 +198,9 @@ export default function BlogListPage() {
   };
 
   /**
-   * 获取博客列表
+   * 异步获取博客文章列表
+   * @param isInitial - 是否为初始加载，如果是则不提示“未找到内容”
+   * @returns Promise<void>
    */
   const fetchBlogs = useCallback(async (isInitial = false) => {
     try {
@@ -256,7 +265,8 @@ export default function BlogListPage() {
   }, []);
 
   /**
-   * 执行筛选操作（带防抖和验证）
+   * 执行筛选操作（包含防抖逻辑）
+   * @returns void
    */
   const handleFilter = useCallback(() => {
     // 1. 检查筛选条件是否为空
@@ -282,7 +292,8 @@ export default function BlogListPage() {
   }, [filterTitle, filterCategory, filterTag, filterDateRange, fetchBlogs, showToast]);
 
   /**
-   * 重置筛选条件
+   * 重置所有筛选条件并重新加载数据
+   * @returns void
    */
   const handleReset = useCallback(() => {
     setFilterTitle('');
@@ -299,7 +310,8 @@ export default function BlogListPage() {
   }, [fetchBlogs]);
 
   /**
-   * 导出文章列表为 CSV 文件
+   * 将当前显示的博客列表导出为 CSV 文件
+   * @returns void
    */
   const handleExport = () => {
     // Basic CSV export
@@ -325,8 +337,9 @@ export default function BlogListPage() {
   };
 
   /**
-   * 将文章移入回收站
-   * @param id 文章ID
+   * 触发删除确认对话框
+   * @param id - 要删除的文章 ID
+   * @returns Promise<void>
    */
   const handleDelete = async (id: string) => {
     setBlogIdToDelete(id);
@@ -334,7 +347,8 @@ export default function BlogListPage() {
   };
 
   /**
-   * 确认执行删除操作
+   * 确认并执行异步删除博客文章操作
+   * @returns Promise<void>
    */
   const confirmDelete = async () => {
     if (!blogIdToDelete) return;

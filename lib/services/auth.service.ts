@@ -157,15 +157,12 @@ export async function resetPassword(email: string) {
 
 /**
  * 验证令牌
- * @param token 访问令牌
- * @returns 用户信息
+ * 使用 Supabase Auth API 验证访问令牌的有效性
+ * @param {string} token - 访问令牌
+ * @returns {Promise<any>} - 返回用户信息
  */
 export async function verifyToken(token: string) {
-  const supabaseWithToken = supabase.auth.setSession({
-    access_token: token,
-  });
-
-  const { data: { user }, error } = await supabaseWithToken.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
     throw new Error('令牌无效或已过期');
@@ -173,10 +170,6 @@ export async function verifyToken(token: string) {
 
   return user;
 }
-
-// ============================================
-// 用户管理功能（管理员专用）
-// ============================================
 
 /**
  * 获取所有用户列表

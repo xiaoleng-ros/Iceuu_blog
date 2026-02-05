@@ -66,14 +66,19 @@ export default function DraftsPage() {
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   /**
-   * 显示提示信息
+   * 显示 Toast 提示信息
+   * @param message - 提示文本内容
+   * @param type - 提示类型：'success' | 'error' | 'info' | 'warning'，默认为 'info'
+   * @returns void
    */
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
   /**
-   * 获取博客列表
+   * 异步获取博客草稿列表
+   * @param isInitial - 是否为初始加载，如果是则不提示“未找到匹配内容”
+   * @returns Promise<void>
    */
   const fetchBlogs = useCallback(async (isInitial = false) => {
     try {
@@ -106,19 +111,26 @@ export default function DraftsPage() {
           filteredData = filteredData.filter((b: Blog) => new Date(b.created_at) <= endDate);
         }
         setBlogs(filteredData);
+        
+        // 如果不是初始加载且没有找到匹配内容，显示提示
+        if (!isInitial && filteredData.length === 0) {
+          showToast('未找到匹配内容', 'info');
+        }
       } else {
         showToast(json.error || '获取草稿失败', 'error');
       }
     } catch (error) {
       console.error('Error fetching blogs:', error);
-      showToast('网络请求失败', 'error');
+      showToast('网络请求失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
     }
   }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast]);
 
   useEffect(() => {
-    // 获取分类和标签
+    /**
+     * 异步获取筛选所需的分类和标签
+     */
     const fetchFilters = async () => {
       const { data: catData } = await supabase.from('categories').select('name');
       const { data: tagData } = await supabase.from('tags').select('name');
@@ -130,7 +142,8 @@ export default function DraftsPage() {
   }, [fetchBlogs]);
 
   /**
-   * 执行筛选
+   * 处理筛选搜索逻辑（带防抖）
+   * @returns void
    */
   const handleFilter = useCallback(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -139,7 +152,8 @@ export default function DraftsPage() {
   }, [fetchBlogs]);
 
   /**
-   * 重置筛选
+   * 重置所有筛选条件并重新加载数据
+   * @returns void
    */
   const handleReset = useCallback(() => {
     setFilterTitle('');
@@ -151,7 +165,9 @@ export default function DraftsPage() {
   }, [fetchBlogs]);
 
   /**
-   * 发布草稿
+   * 触发发布草稿确认对话框
+   * @param id - 文章 ID
+   * @returns Promise<void>
    */
   const handlePublish = async (id: string) => {
     setConfirmConfig({
@@ -190,7 +206,9 @@ export default function DraftsPage() {
   };
 
   /**
-   * 移入回收站
+   * 触发移入回收站确认对话框
+   * @param id - 文章 ID
+   * @returns Promise<void>
    */
   const handleDelete = async (id: string) => {
     setConfirmConfig({
@@ -228,7 +246,8 @@ export default function DraftsPage() {
   };
 
   /**
-   * 批量发布草稿
+   * 触发批量发布草稿确认对话框
+   * @returns Promise<void>
    */
   const handleBatchPublish = async () => {
     if (selectedIds.length === 0) return;
@@ -244,27 +263,30 @@ export default function DraftsPage() {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) return;
 
-          const res = await fetch(`/api/blog`, {
-            method: 'PATCH',
-            headers: { 
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}` 
-            },
-            body: JSON.stringify({
-              ids: selectedIds,
-              updates: { draft: false }
-            })
-          });
+          const results = await Promise.all(
+            selectedIds.map(id => 
+              fetch(`/api/blog/${id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ draft: false }),
+              })
+            )
+          );
 
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => !selectedIds.includes(b.id)));
-            setSelectedIds([]);
-            showToast(`已成功发布 ${selectedIds.length} 篇文章`, 'success');
+          const successCount = results.filter(r => r.ok).length;
+          if (successCount > 0) {
+            const successIds = selectedIds.filter((_, i) => results[i]?.ok);
+            setBlogs(prev => prev.filter(b => !successIds.includes(b.id)));
+            setSelectedIds(prev => prev.filter(id => !successIds.includes(id)));
+            showToast(`成功发布 ${successCount} 篇文章`, 'success');
           } else {
-            showToast('批量发布失败', 'error');
+            showToast('发布失败', 'error');
           }
         } catch (error) {
-          showToast('操作出错', 'error');
+          showToast('批量操作出错', 'error');
         } finally {
           setConfirmConfig(prev => ({ ...prev, isOpen: false }));
         }
@@ -273,40 +295,45 @@ export default function DraftsPage() {
   };
 
   /**
-   * 批量移入回收站
+   * 触发批量移入回收站确认对话框
+   * @returns Promise<void>
    */
   const handleBatchDelete = async () => {
     if (selectedIds.length === 0) return;
 
     setConfirmConfig({
       isOpen: true,
-      title: '批量移入回收站',
+      title: '批量删除',
       description: `确定要将选中的 ${selectedIds.length} 篇草稿移入回收站吗？`,
-      confirmText: '全部移入',
+      confirmText: '全部删除',
       variant: 'danger',
       onConfirm: async () => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) return;
 
-          const res = await fetch(`/api/blog`, {
-            method: 'DELETE',
-            headers: { 
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}` 
-            },
-            body: JSON.stringify({ ids: selectedIds })
-          });
+          const results = await Promise.all(
+            selectedIds.map(id => 
+              fetch(`/api/blog/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              })
+            )
+          );
 
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => !selectedIds.includes(b.id)));
+          const successCount = results.filter(r => r.ok).length;
+          if (successCount > 0) {
+            const successIds = selectedIds.filter((_, i) => results[i]?.ok);
+            setBlogs(prev => prev.filter(b => !successIds.includes(b.id)));
             setSelectedIds([]);
-            showToast(`已成功将 ${selectedIds.length} 篇文章移入回收站`, 'success');
+            showToast(`成功将 ${successCount} 篇文章移入回收站`, 'success');
           } else {
-            showToast('批量操作失败', 'error');
+            showToast('删除失败', 'error');
           }
         } catch (error) {
-          showToast('操作出错', 'error');
+          showToast('批量删除出错', 'error');
         } finally {
           setConfirmConfig(prev => ({ ...prev, isOpen: false }));
         }

@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { User, Loader2, Shield, Upload, Lock, Save, Mail, FileText, UserCircle, CheckCircle2, XCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Shield, Lock, Save, CheckCircle2, XCircle, AlertCircle, Eye, EyeOff, Image as ImageIcon, Globe, UserCircle, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteStore } from '@/lib/store/useSiteStore';
 
 /**
  * Toast 提示组件
+ * 显示临时的操作结果提示
+ * @param props - 包含 message, type, onClose 的属性对象
+ * @returns JSX.Element
  */
 const Toast = ({ 
   message, 
@@ -52,40 +55,19 @@ const Toast = ({
   );
 };
 
+/**
+ * 系统设置组件
+ * 管理个人资料、账号安全、密码修改及系统偏好
+ * @returns JSX.Element
+ */
 export default function SystemSettings() {
   const storeUser = useSiteStore((state) => state.user);
   const updateUserInStore = useSiteStore((state) => state.updateUser);
-  const fetchUserInStore = useSiteStore((state) => state.fetchUser);
   
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   
-  // Profile State
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileData, setProfileData] = useState({
-    fullName: '',
-    email: '',
-    bio: '',
-    avatarUrl: '',
-  });
-
-  // 使用 Store 中的用户信息初始化表单
-  useEffect(() => {
-    if (storeUser) {
-      setProfileData({
-        fullName: storeUser.fullName || '',
-        email: storeUser.email || '',
-        bio: '', // Bio 还是需要从 auth 获取，或者我们可以把 bio 也加到 store
-        avatarUrl: storeUser.avatarUrl || '',
-      });
-    }
-  }, [storeUser]);
-
-  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
   // Password State
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -97,163 +79,139 @@ export default function SystemSettings() {
   });
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
 
+  const [githubSaving, setGithubSaving] = useState(false);
+  const [showGithubToken, setShowGithubToken] = useState(false);
+  const [githubData, setGithubData] = useState({
+    github_token: '',
+    github_owner: '',
+    github_repo: '',
+    github_branch: 'main',
+  });
+
+  // 获取全局配置
+  const config = useSiteStore((state) => state.config);
+  const configPassword = config.admin_password;
+
+  /**
+   * 初始化 GitHub 配置
+   */
   useEffect(() => {
-    const fetchUser = async () => {
+    if (config) {
+      setGithubData({
+        github_token: config.github_token || '',
+        github_owner: config.github_owner || '',
+        github_repo: config.github_repo || '',
+        github_branch: config.github_branch || 'main',
+      });
+    }
+  }, [config]);
+
+  /**
+   * 实时同步数据库中的密码到旧密码字段
+   * 确保任何密码变更都能立即反映在前端展示
+   */
+  useEffect(() => {
+    if (configPassword && !passwordData.currentPassword) {
+      setPasswordData(prev => ({
+        ...prev,
+        currentPassword: configPassword
+      }));
+    }
+  }, [configPassword]);
+
+  useEffect(() => {
+    /**
+     * 获取用户信息及实时密码配置
+     */
+    const fetchUserAndConfig = async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        setProfileData({
-          fullName: user.user_metadata?.full_name || '',
-          email: user.email || '',
-          bio: user.user_metadata?.bio || '',
-          avatarUrl: user.user_metadata?.avatar_url || '',
-        });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (user) {
+          setUser(user);
+
+          // 1) 在页面加载时立即调用后端API获取当前用户的真实密码
+          if (session) {
+            try {
+              const res = await fetch('/api/auth/password', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+              });
+              const result = await res.json();
+              
+              // 3) 添加数据校验逻辑，确保获取的密码数据完整性
+              if (res.ok && result.password) {
+                setPasswordData(prev => ({
+                  ...prev,
+                  currentPassword: result.password
+                }));
+              }
+            } catch (apiError) {
+              console.error('Failed to fetch password from API:', apiError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user or password:', error);
+        setToast({ message: '获取账户安全信息失败，请检查网络或数据库连接', type: 'error' });
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchUser();
+    fetchUserAndConfig();
   }, []);
 
   /**
-   * 处理个人资料字段变更
-   * @param e 事件对象
+   * 处理 GitHub 配置变更
+   * @param e - 输入框变更事件
    */
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleGithubChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
-    // 清除对应字段的错误
-    if (profileErrors[name]) {
-      setProfileErrors(prev => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
+    setGithubData(prev => ({ ...prev, [name]: value }));
   };
 
   /**
-   * 处理头像上传
-   * @param e 事件对象
+   * 保存 GitHub 配置到 site_config
    */
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 验证大小 (例如 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setToast({ message: '图片大小不能超过 2MB', type: 'error' });
-      return;
-    }
-
+  const handleSaveGithub = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    setGithubSaving(true);
     try {
-      setUploadingAvatar(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'avatar');
-
-      const res = await fetch('/api/upload', {
+      const res = await fetch('/api/settings', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
-        body: formData,
+        body: JSON.stringify(githubData),
       });
 
-      const json = await res.json();
       if (res.ok) {
-        setProfileData(prev => ({ ...prev, avatarUrl: json.data.url }));
-        setToast({ message: '头像上传成功', type: 'success' });
+        setToast({ message: '图床配置已更新', type: 'success' });
+        // 刷新全局 store 中的配置
+        useSiteStore.getState().fetchConfig();
       } else {
-        setToast({ message: '上传失败: ' + json.error, type: 'error' });
+        const json = await res.json();
+        setToast({ message: '保存失败: ' + json.error, type: 'error' });
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      setToast({ message: '上传出错', type: 'error' });
+      console.error('Save github config error:', error);
+      setToast({ message: '保存出错', type: 'error' });
     } finally {
-      setUploadingAvatar(false);
+      setGithubSaving(false);
     }
   };
 
   /**
-   * 保存个人资料
-   * @param e 事件对象
-   */
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // 简单验证
-    const errors: Record<string, string> = {};
-    if (!profileData.fullName.trim()) errors.fullName = '名称不能为空';
-    if (!profileData.email.trim()) errors.email = '邮箱不能为空';
-    if (!profileData.bio.trim()) errors.bio = '介绍不能为空';
-    
-    if (Object.keys(errors).length > 0) {
-      setProfileErrors(errors);
-      return;
-    }
-
-    setProfileSaving(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        email: profileData.email !== user.email ? profileData.email : undefined,
-        data: {
-          full_name: profileData.fullName,
-          bio: profileData.bio,
-          avatar_url: profileData.avatarUrl,
-        },
-      });
-
-      if (error) throw error;
-
-      // 同步更新 site_config 表，以便前端实时同步
-      const configUpdates = [
-        { key: 'site_name', value: profileData.fullName },
-        { key: 'avatar_url', value: profileData.avatarUrl },
-        { key: 'intro', value: profileData.bio }
-      ];
-
-      for (const item of configUpdates) {
-        await supabase
-          .from('site_config')
-          .upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
-      }
-
-      // 强制刷新本地缓存
-      await supabase.auth.refreshSession();
-      
-      // 更新全局 Store
-      updateUserInStore({
-        fullName: profileData.fullName,
-        avatarUrl: profileData.avatarUrl,
-        email: profileData.email,
-      });
-      
-      // 更新本地用户状态
-      const { data: { user: updatedUser } } = await supabase.auth.getUser();
-      if (updatedUser) {
-        setUser(updatedUser);
-      }
-
-      setToast({ 
-        message: profileData.email !== user.email ? '个人信息已保存，请查收新邮箱确认邮件。' : '个人信息已成功保存', 
-        type: 'success' 
-      });
-    } catch (error: any) {
-      console.error('Profile save error:', error);
-      setToast({ message: '保存失败: ' + error.message, type: 'error' });
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  /**
-   * 处理密码字段变更
-   * @param e 事件对象
+   * 处理密码输入变更
+   * @param e - 输入框变更事件
    */
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -268,8 +226,8 @@ export default function SystemSettings() {
   };
 
   /**
-   * 保存新密码
-   * @param e 事件对象
+   * 保存新密码并同步到后端
+   * @param e - 表单提交事件
    */
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,25 +245,42 @@ export default function SystemSettings() {
 
     setPasswordSaving(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: passwordData.currentPassword,
-      });
-
-      if (signInError) {
-        setPasswordErrors({ currentPassword: '当前密码错误' });
-        setPasswordSaving(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setToast({ message: '登录已过期，请重新登录', type: 'error' });
         return;
       }
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
+      // 使用后端 API 进行密码更新和实时同步
+      const response = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        }),
       });
 
-      if (updateError) throw updateError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.error === '当前密码错误') {
+          setPasswordErrors({ currentPassword: '当前密码错误' });
+        } else {
+          throw new Error(result.error || '密码修改失败');
+        }
+        return;
+      }
 
       setToast({ message: '密码修改成功', type: 'success' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      
+      // 注意：由于建立了实时同步机制，configPassword 会通过 useSiteStore 自动更新，
+      // 触发 useEffect 从而更新旧密码显示。
     } catch (error: any) {
       console.error('Password save error:', error);
       setToast({ message: '修改失败: ' + error.message, type: 'error' });
@@ -346,144 +321,94 @@ export default function SystemSettings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-        {/* 个人资料卡片 */}
+        {/* 图床设置卡片 */}
         <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
           <CardHeader className="border-b border-[#F2F3F5] bg-[#F9FBFF]/50 py-4 px-6">
             <CardTitle className="text-base font-bold text-[#1D2129] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 bg-[#165DFF] rounded-full" />
-                个人资料
+                图床设置 (GitHub)
               </div>
-              <UserCircle className="h-4 w-4 text-[#165DFF] opacity-50" />
+              <ImageIcon className="h-4 w-4 text-[#165DFF] opacity-50" />
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <form onSubmit={handleSaveProfile} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSaveGithub} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                    <span className="text-[#F53F3F]">*</span> 名称
-                  </Label>
-                  <Input
-                    name="fullName"
-                    value={profileData.fullName}
-                    onChange={handleProfileChange}
-                    placeholder="请输入显示名称"
-                    className={cn(
-                      "h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-                      profileErrors.fullName && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-                    )}
-                  />
-                  {profileErrors.fullName && (
-                    <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-                      <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-                      {profileErrors.fullName}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                    <span className="text-[#F53F3F]">*</span> 邮箱
-                  </Label>
+                  <Label className="text-sm font-bold text-[#4E5969]">GitHub Token</Label>
                   <div className="relative group">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
                     <Input
-                      name="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={handleProfileChange}
-                      placeholder="example@email.com"
-                      className={cn(
-                        "h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-                        profileErrors.email && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-                      )}
+                      name="github_token"
+                      type={showGithubToken ? "text" : "password"}
+                      value={githubData.github_token}
+                      onChange={handleGithubChange}
+                      placeholder="ghp_xxxxxxxxxxxx"
+                      className="h-11 pl-10 pr-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
                     />
-                  </div>
-                  {profileErrors.email && (
-                    <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-                      <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-                      {profileErrors.email}
-                    </p>
-                  )}
-                </div>
-
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                    <span className="text-[#F53F3F]">*</span> 头像
-                  </Label>
-                  <div className="flex gap-3">
-                    <div className="relative flex-1 group">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full overflow-hidden border border-[#E5E6EB]">
-                        {profileData.avatarUrl ? (
-                          <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <UserCircle className="w-full h-full text-[#C9CDD4]" />
-                        )}
-                      </div>
-                      <Input
-                        name="avatarUrl"
-                        value={profileData.avatarUrl}
-                        onChange={handleProfileChange}
-                        placeholder="https://example.com/avatar.png"
-                        className="h-11 pl-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                      />
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleAvatarUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingAvatar}
-                      className="h-11 px-4 border-[#E5E6EB] text-[#4E5969] hover:bg-[#F2F3F5] rounded-xl flex-shrink-0 transition-all active:scale-95"
+                      onClick={() => setShowGithubToken(!showGithubToken)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86909C] hover:text-[#165DFF] transition-colors p-1"
                     >
-                      {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={18} />}
-                    </Button>
+                      {showGithubToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
-                  <p className="text-[11px] text-[#86909C]">支持 JPG、PNG、GIF 格式，大小不超过 2MB</p>
+                  <p className="text-[11px] text-[#86909C]">用于上传图片的 GitHub Personal Access Token</p>
                 </div>
 
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                    <span className="text-[#F53F3F]">*</span> 个人介绍
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-[#4E5969]">仓库所有者 (Owner)</Label>
                   <div className="relative group">
-                    <FileText className="absolute left-3 top-3 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
-                    <textarea
-                      name="bio"
-                      value={profileData.bio}
-                      onChange={handleProfileChange}
-                      rows={4}
-                      className={cn(
-                        "w-full pl-10 pr-4 py-3 border border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all outline-none text-[#1D2129] text-sm resize-none bg-[#F9FBFF]/30",
-                        profileErrors.bio && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-                      )}
-                      placeholder="写点什么介绍一下自己吧..."
+                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+                    <Input
+                      name="github_owner"
+                      value={githubData.github_owner}
+                      onChange={handleGithubChange}
+                      placeholder="GitHub 用户名或组织名"
+                      className="h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
                     />
                   </div>
-                  {profileErrors.bio && (
-                    <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-                      <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-                      {profileErrors.bio}
-                    </p>
-                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-[#4E5969]">仓库名称 (Repo)</Label>
+                  <div className="relative group">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+                    <Input
+                      name="github_repo"
+                      value={githubData.github_repo}
+                      onChange={handleGithubChange}
+                      placeholder="存储图片的仓库名"
+                      className="h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-[#4E5969]">分支 (Branch)</Label>
+                  <div className="relative group">
+                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+                    <Input
+                      name="github_branch"
+                      value={githubData.github_branch}
+                      onChange={handleGithubChange}
+                      placeholder="main"
+                      className="h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="pt-2 flex justify-end">
                 <Button 
                   type="submit" 
-                  disabled={profileSaving}
+                  disabled={githubSaving}
                   className="h-10 bg-[#40A9FF] hover:bg-[#1890FF] text-white font-medium rounded-xl transition-all shadow-[0_4px_12px_rgba(64,169,255,0.2)] flex items-center gap-2 px-6"
                 >
-                  {profileSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {profileSaving ? '正在保存...' : '保存个人资料'}
+                  {githubSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {githubSaving ? '正在保存...' : '保存图床配置'}
                 </Button>
               </div>
             </form>
@@ -528,6 +453,7 @@ export default function SystemSettings() {
                       type={showCurrentPassword ? "text" : "password"}
                       value={passwordData.currentPassword}
                       onChange={handlePasswordChange}
+                      autoComplete="current-password"
                       className={cn(
                         "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
                         passwordErrors.currentPassword && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
@@ -561,6 +487,7 @@ export default function SystemSettings() {
                       type={showNewPassword ? "text" : "password"}
                       value={passwordData.newPassword}
                       onChange={handlePasswordChange}
+                      autoComplete="new-password"
                       className={cn(
                         "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
                         passwordErrors.newPassword && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
@@ -594,6 +521,7 @@ export default function SystemSettings() {
                       type={showNewPassword ? "text" : "password"}
                       value={passwordData.confirmPassword}
                       onChange={handlePasswordChange}
+                      autoComplete="new-password"
                       className={cn(
                         "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
                         passwordErrors.confirmPassword && "border-[#F53F3F] focus:ring-[#F53F3F]/20"

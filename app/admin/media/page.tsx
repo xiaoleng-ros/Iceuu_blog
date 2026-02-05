@@ -8,17 +8,14 @@ import {
   Copy, 
   Check, 
   UploadCloud, 
-  RefreshCw, 
   Image as ImageIcon, 
   Loader2, 
   LayoutGrid, 
   List, 
-  MoreVertical, 
   Trash2, 
   Eye, 
   ExternalLink,
   Search,
-  FileIcon,
   X
 } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
@@ -48,6 +45,9 @@ export default function MediaPage() {
 
   /**
    * 显示提示信息
+   * @param message - 提示文本内容
+   * @param type - 提示类型：'success' | 'error' | 'info' | 'warning'，默认为 'info'
+   * @returns void
    */
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
@@ -61,6 +61,10 @@ export default function MediaPage() {
     { label: '其他', value: 'other' },
   ];
 
+  /**
+   * 异步获取媒体资源列表
+   * @returns Promise<void>
+   */
   const fetchMedia = useCallback(async () => {
     try {
       setLoading(true);
@@ -94,6 +98,11 @@ export default function MediaPage() {
     fetchMedia();
   }, [fetchMedia, selectedType]);
 
+  /**
+   * 处理文件上传逻辑
+   * @param e - 文件输入框变更事件
+   * @returns Promise<void>
+   */
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -130,6 +139,11 @@ export default function MediaPage() {
     }
   };
 
+  /**
+   * 处理媒体文件删除逻辑
+   * @param id - 媒体文件 ID
+   * @returns Promise<void>
+   */
   const handleDelete = async (id: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -160,6 +174,12 @@ export default function MediaPage() {
     }
   };
 
+  /**
+   * 复制链接到剪贴板
+   * @param url - 要复制的 URL
+   * @param id - 媒体文件 ID，用于标识已复制状态
+   * @returns void
+   */
   const copyToClipboard = (url: string, id: string) => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
@@ -171,6 +191,11 @@ export default function MediaPage() {
     item.filename.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  /**
+   * 格式化文件大小显示
+   * @param bytes - 文件字节数
+   * @returns string - 格式化后的字符串（如 1.25 MB）
+   */
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '未知大小';
     const k = 1024;
@@ -179,6 +204,11 @@ export default function MediaPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  /**
+   * 根据类型获取分类名称
+   * @param type - 媒体类型值
+   * @returns string - 分类中文标签
+   */
   const getCategoryLabel = (type?: string) => {
     return categories.find(c => c.value === type)?.label || '其他';
   };

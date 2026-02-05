@@ -7,17 +7,17 @@ import IconCloud from './IconCloud';
 import { useState, useEffect } from 'react';
 
 interface SidebarProps {
-  config?: any; // 保持向后兼容，但优先使用 Store
-  tags: string[];
-  totalPosts?: number;
-  posts?: any[]; // For "Random/Popular" posts
+  // 目前站点配置通过 useSiteStore 统一管理，props 暂时保留空接口以备后用
 }
 
 /**
  * 侧边栏组件
- * 使用全局 Store 获取站点配置，确保信息实时同步且无延迟
+ * 展示博主个人资料、社交媒体链接、运行统计以及 3D 标签云
+ * 站点配置信息从 useSiteStore 全局状态中获取，确保跨页面同步
+ * @param {SidebarProps} props - 组件属性
+ * @returns {JSX.Element}
  */
-export default function Sidebar({ tags, totalPosts = 0, posts = [] }: SidebarProps) {
+export default function Sidebar(_props: SidebarProps) {
   // 从全局 Store 中获取站点配置
   const config = useSiteStore((state) => state.config);
   const [svgIcons, setSvgIcons] = useState<string[]>([]);

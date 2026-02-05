@@ -32,6 +32,7 @@ interface UserInfo {
   fullName: string;
   avatarUrl: string;
   email: string;
+  bio: string;
 }
 
 /**
@@ -109,6 +110,7 @@ export const useSiteStore = create<SiteState>()(
                 fullName: user.user_metadata?.full_name || '管理员',
                 avatarUrl: user.user_metadata?.avatar_url || '',
                 email: user.email || '',
+                bio: user.user_metadata?.bio || '',
               }
             });
           }
@@ -174,6 +176,7 @@ export const useSiteStore = create<SiteState>()(
                 fullName: user.user_metadata?.full_name || '管理员',
                 avatarUrl: user.user_metadata?.avatar_url || '',
                 email: user.email || '',
+                bio: user.user_metadata?.bio || '',
               });
             }
           } else if (event === 'SIGNED_OUT') {

@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import { Metadata } from 'next';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/utils';
@@ -38,6 +37,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/**
+ * 根据文章 ID 获取博文详细内容及其前后文导航
+ * @param id - 文章 ID
+ * @returns Promise - 返回包含博文内容及前后文信息的对象，不存在则返回 null
+ */
 async function getBlog(id: string) {
   // 1. 获取当前文章
   const { data: blog, error } = await supabase
@@ -79,6 +83,10 @@ async function getBlog(id: string) {
   };
 }
 
+/**
+ * 获取站点配置信息（如背景图、站点标题等）
+ * @returns Promise<Record<string, any>> - 返回以配置项 key 为键的对象
+ */
 async function getSiteConfig() {
   try {
     const { data } = await supabase.from('site_config').select('*');
@@ -93,6 +101,11 @@ async function getSiteConfig() {
   }
 }
 
+/**
+ * 博文详情页服务端组件
+ * @param props - 路由参数，包含文章 ID
+ * @returns Promise<JSX.Element> - 渲染后的详情页面
+ */
 export default async function BlogDetailPage({ params }: Props) {
   const { id } = await params;
   const [blog, siteConfig] = await Promise.all([

@@ -18,6 +18,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Fetch GitHub configuration from site_config table
+  const { data: configData } = await requestSupabase
+    .from('site_config')
+    .select('key, value')
+    .in('key', ['github_token', 'github_owner', 'github_repo', 'github_branch']);
+
+  const dbConfig = configData?.reduce((acc: any, curr) => {
+    acc[curr.key] = curr.value;
+    return acc;
+  }, {});
+
+  const githubConfig = dbConfig?.github_token ? {
+    token: dbConfig.github_token,
+    owner: dbConfig.github_owner,
+    repo: dbConfig.github_repo,
+    branch: dbConfig.github_branch || 'main',
+  } : undefined;
+
   let filePath = '';
   let uploadedToGithub = false;
 
@@ -68,11 +86,11 @@ export async function POST(request: Request) {
     }
 
     // Upload to GitHub
-    await uploadImageToGitHub(content, filePath, `Upload ${type} image: ${filePath}`);
+    await uploadImageToGitHub(content, filePath, `Upload ${type} image: ${filePath}`, githubConfig);
     uploadedToGithub = true;
     
     // Get CDN URL
-    const url = getJsDelivrUrl(filePath);
+    const url = getJsDelivrUrl(filePath, githubConfig);
 
     // Save to Media table
     let { data: mediaData, error: dbError } = await requestSupabase

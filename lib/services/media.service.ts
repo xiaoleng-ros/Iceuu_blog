@@ -1,8 +1,3 @@
-/**
- * 媒体服务层
- * 提供媒体文件上传和管理的业务逻辑
- */
-
 import { supabase } from '@/lib/supabase';
 import { uploadImageToGitHub, getJsDelivrUrl, deleteFileFromGitHub } from '@/lib/github';
 import { Media } from '@/types/database';
@@ -10,19 +5,20 @@ import { FILE_UPLOAD_LIMITS, STORAGE_PATHS, MEDIA_TYPES } from '@/lib/constants'
 
 /**
  * 上传文件
- * @param file 文件对象
- * @param type 媒体类型
- * @param contextId 上下文 ID（如文章 ID）
- * @param userId 用户 ID
- * @returns 上传的媒体信息
+ * 处理文件验证、生成存储路径、上传至 GitHub 并保存记录到数据库
+ * @param {File} file - 文件对象
+ * @param {typeof MEDIA_TYPES[keyof typeof MEDIA_TYPES]} type - 媒体类型（从 MEDIA_TYPES 常量中获取）
+ * @param {string} [contextId] - 上下文 ID（如文章 ID，用于生成路径）
+ * @param {string} [userId] - 用户 ID（用于生成头像路径）
+ * @returns {Promise<Media>} - 返回上传成功的媒体信息
  */
 export async function uploadMedia(
   file: File,
-  type: keyof typeof MEDIA_TYPES,
+  type: typeof MEDIA_TYPES[keyof typeof MEDIA_TYPES],
   contextId?: string,
   userId?: string
 ): Promise<Media> {
-  if (!FILE_UPLOAD_LIMITS.ALLOWED_IMAGE_TYPES.includes(file.type)) {
+  if (!FILE_UPLOAD_LIMITS.ALLOWED_IMAGE_TYPES.includes(file.type as any)) {
     throw new Error(`不支持的文件类型: ${file.type}`);
   }
 
@@ -102,8 +98,8 @@ export async function uploadMedia(
 
 /**
  * 根据 ID 获取媒体
- * @param id 媒体 ID
- * @returns 媒体信息
+ * @param {string} id - 媒体 ID
+ * @returns {Promise<Media | null>} - 返回媒体信息，未找到则返回 null
  */
 export async function getMediaById(id: string): Promise<Media | null> {
   const { data, error } = await supabase
@@ -122,13 +118,14 @@ export async function getMediaById(id: string): Promise<Media | null> {
 
 /**
  * 获取媒体列表
- * @param type 媒体类型
- * @param page 页码
- * @param limit 每页数量
- * @returns 媒体列表和总数
+ * 支持按类型筛选及分页
+ * @param {typeof MEDIA_TYPES[keyof typeof MEDIA_TYPES]} [type] - 媒体类型
+ * @param {number} [page=1] - 页码
+ * @param {number} [limit=20] - 每页数量
+ * @returns {Promise<{ data: Media[], total: number, page: number, limit: number, totalPages: number }>} - 返回媒体列表及分页信息
  */
 export async function getMediaList(
-  type?: keyof typeof MEDIA_TYPES,
+  type?: typeof MEDIA_TYPES[keyof typeof MEDIA_TYPES],
   page = 1,
   limit = 20
 ) {
@@ -161,8 +158,9 @@ export async function getMediaList(
 
 /**
  * 删除媒体
- * @param id 媒体 ID
- * @returns 删除结果
+ * 同时从 GitHub 存储和数据库记录中删除
+ * @param {string} id - 媒体 ID
+ * @returns {Promise<{ success: boolean }>} - 返回删除结果
  */
 export async function deleteMedia(id: string): Promise<{ success: boolean }> {
   const media = await getMediaById(id);
@@ -191,8 +189,8 @@ export async function deleteMedia(id: string): Promise<{ success: boolean }> {
 
 /**
  * 批量删除媒体
- * @param ids 媒体 ID 数组
- * @returns 删除结果
+ * @param {string[]} ids - 媒体 ID 数组
+ * @returns {Promise<{ success: boolean, count: number }>} - 返回是否全部成功以及成功删除的数量
  */
 export async function deleteMultipleMedia(ids: string[]): Promise<{ success: boolean; count: number }> {
   const results = await Promise.allSettled(

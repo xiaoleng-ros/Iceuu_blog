@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,13 +10,22 @@ import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { Search as SearchIcon, Loader2, FileSearch } from 'lucide-react';
 
+/**
+ * 全站搜索页面组件
+ * 提供标题关键词搜索功能，展示博客列表
+ * @returns JSX.Element
+ */
 export default function SearchPage() {
-  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
+  /**
+   * 处理搜索表单提交
+   * @param e - React 表单事件
+   * @returns Promise<void>
+   */
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;

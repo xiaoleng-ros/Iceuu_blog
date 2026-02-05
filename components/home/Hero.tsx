@@ -1,11 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
 import { useSiteConfig } from '@/lib/hooks/useSiteConfig';
 
-import { Clock, Tag, Calendar } from 'lucide-react';
+import { Tag, Calendar } from 'lucide-react';
 
 interface PostMetadata {
   title: string;
@@ -30,9 +28,12 @@ interface HeroProps {
 
 /**
  * 首页 Hero 组件
- * @param backgroundImage 背景图 URL
- * @param centerText 居中展示的文字内容
- * @param postMetadata 文章元数据
+ * 展示背景图、打字机动画文字或文章元数据
+ * @param {HeroProps} props - 组件属性
+ * @param {string} [props.backgroundImage] - 背景图 URL
+ * @param {string} [props.centerText] - 居中展示的文字内容
+ * @param {PostMetadata} [props.postMetadata] - 文章元数据（详情页使用）
+ * @returns {JSX.Element}
  */
 export default function Hero({ backgroundImage: initialBg, centerText, postMetadata }: HeroProps) {
   // 使用 useMemo 稳定 initialConfig 对象，防止 useSiteConfig 内部的 useEffect 频繁触发

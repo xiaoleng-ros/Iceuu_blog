@@ -1,11 +1,52 @@
 import { githubConfig, validateGithubConfig } from '@/lib/config/env';
 
 /**
- * 获取 GitHub API URL
- * 延迟计算，只在实际使用时才验证配置
+ * GitHub 配置接口
  */
-function getGitHubApiUrl(): string {
+export interface GitHubConfig {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
+/**
+ * 获取 GitHub API URL
+ */
+function getGitHubApiUrl(config?: GitHubConfig): string {
+  if (config) {
+    return `https://api.github.com/repos/${config.owner}/${config.repo}/contents`;
+  }
   return githubConfig.apiUrl;
+}
+
+/**
+ * 验证配置是否完整
+ */
+function isConfigValid(config?: GitHubConfig): boolean {
+  if (config) {
+    return !!(config.token && config.owner && config.repo);
+  }
+  return validateGithubConfig();
+}
+
+/**
+ * 获取默认配置或传入配置
+ */
+function resolveConfig(config?: GitHubConfig): GitHubConfig {
+  if (config && isConfigValid(config)) {
+    return config;
+  }
+  try {
+    return {
+      token: githubConfig.token,
+      owner: githubConfig.owner,
+      repo: githubConfig.repo,
+      branch: githubConfig.branch,
+    };
+  } catch (e) {
+    throw new Error('GitHub 配置不完整，请在管理后台 [系统设置] 中配置 GitHub 图床，或检查环境变量 GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
+  }
 }
 
 interface UploadResult {
@@ -69,32 +110,32 @@ interface GitHubError {
  * @param content Base64 编码的文件内容
  * @param filePath 文件路径 (e.g., "images/2024/01/test.jpg")
  * @param message 提交信息
+ * @param config 可选的 GitHub 配置（如果提供则优先使用）
  * @returns {Promise<UploadResult>} 上传结果
  */
 export async function uploadImageToGitHub(
   content: string,
   filePath: string,
-  message: string = 'Upload image via Blog Admin'
+  message: string = 'Upload image via Blog Admin',
+  config?: GitHubConfig
 ): Promise<UploadResult> {
-  // 验证 GitHub 配置是否完整
-  if (!validateGithubConfig()) {
-    throw new Error('GitHub 配置不完整，请检查环境变量 GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
-  }
+  // 获取有效配置
+  const activeConfig = resolveConfig(config);
 
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  const url = `${getGitHubApiUrl()}/${cleanPath}`;
+  const url = `${getGitHubApiUrl(activeConfig)}/${cleanPath}`;
 
   try {
     const body = JSON.stringify({
       message,
       content,
-      branch: githubConfig.branch,
+      branch: activeConfig.branch,
     });
 
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${githubConfig.token}`,
+        'Authorization': `token ${activeConfig.token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json',
       },
@@ -114,44 +155,41 @@ export async function uploadImageToGitHub(
 }
 
 /**
- * 获取文件的 CDN 访问链接 (jsDelivr)
+ * 获取文件的 CDN 访问链接
  * @param filePath 文件路径
+ * @param config 可选的 GitHub 配置
  */
-export function getJsDelivrUrl(filePath: string) {
-  // 验证 GitHub 配置是否完整
-  if (!validateGithubConfig()) {
-    throw new Error('GitHub 配置不完整，无法生成 CDN 链接');
-  }
+export function getJsDelivrUrl(filePath: string, config?: GitHubConfig) {
+  const activeConfig = resolveConfig(config);
   
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${cleanPath}`;
+  return `https://raw.githubusercontent.com/${activeConfig.owner}/${activeConfig.repo}/${activeConfig.branch}/${cleanPath}`;
 }
 
 /**
  * 从 GitHub 删除文件
  * @param filePath 文件路径
  * @param message 提交信息
+ * @param config 可选的 GitHub 配置
  */
 export async function deleteFileFromGitHub(
   filePath: string,
-  message: string = 'Delete image via Blog Admin'
+  message: string = 'Delete image via Blog Admin',
+  config?: GitHubConfig
 ): Promise<void> {
-  // 验证 GitHub 配置是否完整
-  if (!validateGithubConfig()) {
-    throw new Error('GitHub 配置不完整，请检查环境变量 GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
-  }
+  const activeConfig = resolveConfig(config);
 
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  const url = `${getGitHubApiUrl()}/${cleanPath}`;
+  const url = `${getGitHubApiUrl(activeConfig)}/${cleanPath}`;
 
   try {
     const getUrl = new URL(url);
-    getUrl.searchParams.append('ref', githubConfig.branch);
+    getUrl.searchParams.append('ref', activeConfig.branch);
 
     const getResponse = await fetch(getUrl.toString(), {
       method: 'GET',
       headers: {
-        'Authorization': `token ${githubConfig.token}`,
+        'Authorization': `token ${activeConfig.token}`,
         'Accept': 'application/vnd.github.v3+json',
       },
     });
@@ -170,14 +208,14 @@ export async function deleteFileFromGitHub(
     const deleteResponse = await fetch(url, {
       method: 'DELETE',
       headers: {
-        'Authorization': `token ${githubConfig.token}`,
+        'Authorization': `token ${activeConfig.token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json',
       },
       body: JSON.stringify({
         message,
         sha,
-        branch: githubConfig.branch,
+        branch: activeConfig.branch,
       }),
     });
 
@@ -193,13 +231,12 @@ export async function deleteFileFromGitHub(
 
 /**
  * 获取文件的 Raw 访问链接 (Fallback)
+ * @param filePath 文件路径
+ * @param config 可选的 GitHub 配置
  */
-export function getGitHubRawUrl(filePath: string) {
-  // 验证 GitHub 配置是否完整
-  if (!validateGithubConfig()) {
-    throw new Error('GitHub 配置不完整，无法生成 Raw 链接');
-  }
+export function getGitHubRawUrl(filePath: string, config?: GitHubConfig) {
+  const activeConfig = resolveConfig(config);
   
   const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${cleanPath}`;
+  return `https://raw.githubusercontent.com/${activeConfig.owner}/${activeConfig.repo}/${activeConfig.branch}/${cleanPath}`;
 }

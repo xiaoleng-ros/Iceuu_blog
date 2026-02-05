@@ -1,9 +1,8 @@
 /**
  * 组件 Props 类型定义
- * 定义 React 组件的 Props 接口
+ * 定义 React 组件的 Props 接口，用于统一组件属性规范
  */
-
-import { Blog, Media, SiteConfig } from './database';
+import { Blog, Media } from './database';
 
 /**
  * 博客表单 Props

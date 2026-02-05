@@ -9,8 +9,9 @@ import { BLOG_CATEGORIES, PAGINATION, BLOG_STATUS } from '@/lib/constants';
 
 /**
  * 获取博客列表
- * @param params 分页和过滤参数
- * @returns 博客列表和总数
+ * 根据分页、分类、标签和状态筛选文章
+ * @param {PaginationParams & QueryFilters} [params={}] - 分页和过滤参数
+ * @returns {Promise<{ data: any[], total: number, page: number, limit: number, totalPages: number }>} - 返回博客列表及分页信息
  */
 export async function getBlogs(params: PaginationParams & QueryFilters = {}) {
   const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT, category, tag, status } = params;
@@ -60,8 +61,8 @@ export async function getBlogs(params: PaginationParams & QueryFilters = {}) {
 
 /**
  * 根据 ID 获取博客
- * @param id 博客 ID
- * @returns 博客详情
+ * @param {string} id - 博客 ID
+ * @returns {Promise<any>} - 返回博客详情
  */
 export async function getBlogById(id: string) {
   const { data, error } = await supabase
@@ -79,8 +80,9 @@ export async function getBlogById(id: string) {
 
 /**
  * 创建博客
- * @param blog 博客数据
- * @returns 创建的博客
+ * 验证数据有效性并插入新文章
+ * @param {Partial<Blog>} blog - 博客数据
+ * @returns {Promise<any>} - 返回创建成功的博客数据
  */
 export async function createBlog(blog: Partial<Blog>) {
   const { title, content, category } = blog;
@@ -93,12 +95,13 @@ export async function createBlog(blog: Partial<Blog>) {
     throw new Error(`无效的分类，必须是: ${BLOG_CATEGORIES.join(', ')}`);
   }
 
-  const allowedFields = ['title', 'content', 'excerpt', 'cover_image', 'category', 'tags', 'draft', 'images'];
+  const allowedFields = ['title', 'content', 'excerpt', 'cover_image', 'category', 'tags', 'draft', 'images'] as const;
   const insertData: Partial<Blog> = {};
   
   allowedFields.forEach(field => {
-    if (blog[field as keyof Blog] !== undefined) {
-      insertData[field as keyof Blog] = blog[field as keyof Blog];
+    const value = blog[field as keyof Blog];
+    if (value !== undefined) {
+      (insertData as any)[field] = value;
     }
   });
 
@@ -117,9 +120,10 @@ export async function createBlog(blog: Partial<Blog>) {
 
 /**
  * 更新博客
- * @param ids 博客 ID 数组
- * @param updates 更新数据
- * @returns 更新的博客
+ * 支持批量更新多个博客的字段
+ * @param {string[]} ids - 博客 ID 数组
+ * @param {Partial<Blog>} updates - 更新的数据内容
+ * @returns {Promise<any[]>} - 返回更新后的博客数据列表
  */
 export async function updateBlogs(ids: string[], updates: Partial<Blog>) {
   const { data, error } = await supabase
@@ -140,9 +144,10 @@ export async function updateBlogs(ids: string[], updates: Partial<Blog>) {
 
 /**
  * 删除博客
- * @param ids 博客 ID 数组
- * @param permanent 是否永久删除
- * @returns 删除结果
+ * 支持软删除（进入回收站）或永久从数据库删除
+ * @param {string[]} ids - 博客 ID 数组
+ * @param {boolean} [permanent=false] - 是否永久删除
+ * @returns {Promise<{ success: boolean }>} - 返回删除操作结果
  */
 export async function deleteBlogs(ids: string[], permanent = false) {
   if (permanent) {
@@ -173,7 +178,8 @@ export async function deleteBlogs(ids: string[], permanent = false) {
 
 /**
  * 获取博客统计
- * @returns 统计数据
+ * 统计总数、已发布、草稿以及已删除的数量
+ * @returns {Promise<{ total: number, published: number, draft: number, deleted: number }>} - 返回各项统计结果
  */
 export async function getBlogStats() {
   const { count: total } = await supabase

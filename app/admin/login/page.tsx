@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Loader2, User, Lock, Eye, EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 /**
  * 管理后台登录页面组件
  * 采用毛玻璃设计风格，包含背景图和动画效果
+ * @returns {JSX.Element} 登录页面界面
  */
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -19,8 +19,9 @@ export default function AdminLogin() {
   const router = useRouter();
 
   /**
-   * 处理登录逻辑
-   * @param e 表单提交事件
+   * 处理登录表单提交逻辑
+   * @param {React.FormEvent} e - 表单提交事件对象
+   * @returns {Promise<void>} 无返回值
    */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function AdminLogin() {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import PublicLayout from '@/components/layout/PublicLayout';
 import Hero from '@/components/home/Hero';
@@ -11,11 +10,14 @@ export const runtime = 'edge';
 // Revalidate home page every 60 seconds
 export const revalidate = 60;
 
+/**
+ * 获取最新发布的文章
+ * 过滤掉草稿和已进入回收站的文章
+ * @param page - 当前页码，默认为 1
+ * @param pageSize - 每页显示数量，默认为 3
+ * @returns Promise<any[]> - 返回文章列表数组
+ */
 async function getLatestPosts(page: number = 1, pageSize: number = 3) {
-  /**
-   * 获取最新发布的文章
-   * 过滤掉草稿和已进入回收站的文章
-   */
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
@@ -29,10 +31,12 @@ async function getLatestPosts(page: number = 1, pageSize: number = 3) {
   return data || [];
 }
 
+/**
+ * 获取站点全局配置
+ * 从 site_config 表中读取键值对并转换为对象格式
+ * @returns Promise<Record<string, any>> - 返回配置对象
+ */
 async function getSiteConfig() {
-  /**
-   * 获取站点配置
-   */
   try {
     const { data } = await supabase.from('site_config').select('*');
     if (!data) return {};
@@ -46,34 +50,12 @@ async function getSiteConfig() {
   }
 }
 
-async function getTags() {
-  /**
-   * 获取热门标签
-   * 仅从已发布的非删除文章中提取
-   */
-  try {
-    const { data } = await supabase
-      .from('blogs')
-      .select('tags')
-      .eq('draft', false)
-      .or('is_deleted.is.null,is_deleted.eq.false')
-      .order('created_at', { ascending: false })
-      .limit(20);
-      
-    if (!data) return [];
-    // Flatten and unique
-    const allTags = data.flatMap(p => p.tags || []);
-    return Array.from(new Set(allTags)).slice(0, 15);
-  } catch (error) {
-    return [];
-  }
-}
-
+/**
+ * 获取已发布文章总数
+ * 用于分页逻辑，排除草稿和回收站文章
+ * @returns Promise<number> - 返回文章总数
+ */
 async function getTotalPosts() {
-  /**
-   * 获取已发布文章总数
-   * 排除回收站文章
-   */
   try {
     const { count } = await supabase
       .from('blogs')
@@ -86,6 +68,12 @@ async function getTotalPosts() {
   }
 }
 
+/**
+ * 博客首页组件
+ * 展示 Hero 区域、文章列表、分页及侧边栏
+ * @param props - 包含 searchParams 的 Promise
+ * @returns Promise<JSX.Element>
+ */
 export default async function Home({
   searchParams,
 }: {
@@ -95,10 +83,9 @@ export default async function Home({
   const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
   const pageSize = 3;
 
-  const [latestPosts, siteConfig, tags, totalPosts] = await Promise.all([
+  const [latestPosts, siteConfig, totalPosts] = await Promise.all([
     getLatestPosts(page, pageSize),
     getSiteConfig(),
-    getTags(),
     getTotalPosts()
   ]);
 
@@ -123,7 +110,7 @@ export default async function Home({
 
             {/* Sidebar */}
             <aside className="w-full lg:w-80 shrink-0 space-y-8 pt-0 lg:pt-0">
-              <Sidebar config={siteConfig} tags={tags} totalPosts={totalPosts} posts={latestPosts} />
+              <Sidebar />
             </aside>
           </div>
         </div>

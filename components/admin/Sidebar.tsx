@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, Image as ImageIcon, Settings, LogOut, Menu, X, Globe, UserCog, ChevronDown, List, PlusCircle, FileEdit, Trash2 } from 'lucide-react';
+import { LayoutDashboard, FileText, Image as ImageIcon, Menu, X, Globe, UserCog, ChevronDown, List, PlusCircle, FileEdit, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -23,6 +23,11 @@ const navItems = [
   { label: '系统设置', href: '/admin/system', icon: UserCog },
 ];
 
+/**
+ * 管理后台侧边栏组件
+ * 提供导航菜单、移动端适配以及退出登录功能
+ * @returns {JSX.Element}
+ */
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -55,7 +60,8 @@ export default function Sidebar() {
 
   /**
    * 切换菜单展开状态
-   * @param label 菜单项标签
+   * @param {string} label - 菜单项标签
+   * @returns {void}
    */
   const toggleMenu = (label: string) => {
     setOpenMenus(prev => 
@@ -67,6 +73,8 @@ export default function Sidebar() {
 
   /**
    * 处理退出登录
+   * 执行 Supabase 退出操作并跳转至登录页
+   * @returns {Promise<void>}
    */
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -3,6 +3,12 @@ import { supabase, createClientWithToken } from '@/lib/supabase';
 
 export const runtime = 'edge';
 
+/**
+ * 处理获取博客列表的 GET 请求
+ * 支持分页、分类筛选、标签筛选及状态筛选（已发布、草稿、回收站）
+ * @param request - Request 对象，包含查询参数
+ * @returns Promise<NextResponse> - 返回博客列表及分页元数据
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get('page') || '1');
@@ -115,6 +121,12 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * 处理创建博客的 POST 请求
+ * 需要管理员权限，包含基本字段校验和分类校验
+ * @param request - Request 对象，包含博客内容 Body
+ * @returns Promise<NextResponse> - 返回创建成功的博客数据或错误信息
+ */
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
@@ -176,6 +188,12 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * 处理批量更新博客的 PATCH 请求
+ * 用于批量修改状态（如发布、设为草稿等）
+ * @param request - Request 对象，包含 ids 和 updates
+ * @returns Promise<NextResponse> - 返回操作成功状态或错误信息
+ */
 export async function PATCH(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
@@ -199,7 +217,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'IDs are required' }, { status: 400 });
     }
 
-    const { data, error } = await requestSupabase
+    const { error } = await requestSupabase
       .from('blogs')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .in('id', ids);
@@ -219,6 +237,12 @@ export async function PATCH(request: Request) {
   }
 }
 
+/**
+ * 处理批量删除博客的 DELETE 请求
+ * 支持移入回收站（软删除）和永久删除
+ * @param request - Request 对象，URL 包含 permanent 参数，Body 包含 ids
+ * @returns Promise<NextResponse> - 返回操作成功状态或错误信息
+ */
 export async function DELETE(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');

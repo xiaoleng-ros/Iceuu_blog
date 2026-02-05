@@ -63,10 +63,21 @@ export default function TrashPage() {
   const pageSize = 10;
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
+  /**
+   * 显示 Toast 提示信息
+   * @param message - 提示文本内容
+   * @param type - 提示类型：'success' | 'error' | 'info' | 'warning'，默认为 'info'
+   * @returns void
+   */
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
+  /**
+   * 异步获取回收站中的博客文章列表
+   * @param isInitial - 是否为初始加载，如果是则不提示“未找到内容”
+   * @returns Promise<void>
+   */
   const fetchBlogs = useCallback(async (isInitial = false) => {
     try {
       setLoading(true);
@@ -92,17 +103,25 @@ export default function TrashPage() {
           filteredData = filteredData.filter((b: Blog) => new Date(b.deleted_at) <= endDate);
         }
         setBlogs(filteredData);
+
+        // 如果不是初始加载且没有找到匹配内容，显示提示
+        if (!isInitial && filteredData.length === 0) {
+          showToast('未找到匹配内容', 'info');
+        }
       } else {
         showToast(json.error || '获取回收站失败', 'error');
       }
     } catch (error) {
-      showToast('网络请求失败', 'error');
+      showToast('网络请求失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
     }
   }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast]);
 
   useEffect(() => {
+    /**
+     * 异步获取筛选所需的分类和标签
+     */
     const fetchFilters = async () => {
       const { data: catData } = await supabase.from('categories').select('name');
       const { data: tagData } = await supabase.from('tags').select('name');
@@ -113,12 +132,20 @@ export default function TrashPage() {
     fetchBlogs(true);
   }, [fetchBlogs]);
 
+  /**
+   * 执行筛选操作（带防抖逻辑）
+   * @returns void
+   */
   const handleFilter = useCallback(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     setCurrentPage(1);
     debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
   }, [fetchBlogs]);
 
+  /**
+   * 重置所有筛选条件并重新加载数据
+   * @returns void
+   */
   const handleReset = useCallback(() => {
     setFilterTitle('');
     setFilterCategory('');
@@ -129,7 +156,9 @@ export default function TrashPage() {
   }, [fetchBlogs]);
 
   /**
-   * 恢复文章
+   * 触发恢复文章确认对话框
+   * @param id - 文章 ID
+   * @returns void
    */
   const handleRestore = (id: string) => {
     setConfirmConfig({
@@ -156,13 +185,17 @@ export default function TrashPage() {
           }
         } catch (error) {
           showToast('操作出错', 'error');
+        } finally {
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
   };
 
   /**
-   * 彻底删除文章
+   * 触发彻底删除文章确认对话框
+   * @param id - 文章 ID
+   * @returns void
    */
   const handlePermanentDelete = (id: string) => {
     setConfirmConfig({
@@ -190,13 +223,16 @@ export default function TrashPage() {
           }
         } catch (error) {
           showToast('操作出错', 'error');
+        } finally {
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
   };
 
   /**
-   * 批量恢复文章
+   * 触发批量恢复文章确认对话框
+   * @returns void
    */
   const handleBatchRestore = () => {
     if (selectedIds.length === 0) return;
@@ -233,13 +269,16 @@ export default function TrashPage() {
           }
         } catch (error) {
           showToast('操作出错', 'error');
+        } finally {
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
   };
 
   /**
-   * 批量彻底删除
+   * 触发批量彻底删除文章确认对话框
+   * @returns void
    */
   const handleBatchPermanentDelete = () => {
     if (selectedIds.length === 0) return;
@@ -273,13 +312,17 @@ export default function TrashPage() {
           }
         } catch (error) {
           showToast('操作出错', 'error');
+        } finally {
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
   };
 
   /**
-   * 切换选择
+   * 切换文章的选择状态
+   * @param id - 文章 ID
+   * @returns void
    */
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -288,7 +331,8 @@ export default function TrashPage() {
   };
 
   /**
-   * 全选/取消全选
+   * 在全选和取消全选之间切换当前页的所有文章
+   * @returns void
    */
   const toggleSelectAll = () => {
     if (selectedIds.length === paginatedBlogs.length) {
@@ -298,6 +342,10 @@ export default function TrashPage() {
     }
   };
 
+  /**
+   * 根据当前页码对博客列表进行分页处理
+   * @returns Blog[] - 当前页的博客文章数组
+   */
   const paginatedBlogs = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return blogs.slice(start, start + pageSize);

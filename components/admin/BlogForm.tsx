@@ -13,7 +13,6 @@ import {
   Hash, 
   Send, 
   Settings2,
-  AlertCircle,
   Clock,
   ChevronDown,
   Check,
@@ -29,6 +28,12 @@ interface BlogFormProps {
   isEditing?: boolean;
 }
 
+/**
+ * 博客表单组件
+ * 用于创建或编辑博客文章，包含标题、内容、分类和封面图设置
+ * @param {BlogFormProps} props - 组件属性
+ * @returns {JSX.Element}
+ */
 export default function BlogForm({ initialData, isEditing = false }: BlogFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -75,7 +80,7 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
       setFormData({
         title: initialData.title || '',
         content: initialData.content || '',
-        category: initialData.category || CATEGORIES[0],
+        category: initialData.category || CATEGORIES[0] || '',
         cover_image: initialData.cover_image || '',
         draft: initialData.draft ?? true,
       });
@@ -88,14 +93,14 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
           setFormData(prev => ({
             ...prev,
             ...parsed,
-            category: parsed.category || CATEGORIES[0]
+            category: parsed.category || CATEGORIES[0] || ''
           }));
         } catch (e) {
           console.error('Failed to parse saved draft:', e);
-          setFormData(prev => ({ ...prev, category: CATEGORIES[0] }));
+          setFormData(prev => ({ ...prev, category: CATEGORIES[0] || '' }));
         }
       } else {
-        setFormData(prev => ({ ...prev, category: CATEGORIES[0] }));
+        setFormData(prev => ({ ...prev, category: CATEGORIES[0] || '' }));
       }
     }
   }, [initialData, STORAGE_KEY]);
@@ -108,15 +113,26 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
   }, [formData, STORAGE_KEY]);
 
   // 3. 提交或保存成功后清除 localStorage
+  /**
+   * 清除本地草稿存储
+   */
   const clearStorage = () => {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  /**
+   * 处理通用表单字段变更
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>} e - 变更事件对象
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * 处理编辑器内容变更
+   * @param {string} content - 富文本内容
+   */
   const handleEditorChange = (content: string) => {
     setFormData(prev => ({ ...prev, content }));
   };
@@ -248,6 +264,10 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
     }
   };
 
+  /**
+   * 处理文章提交发布
+   * @param {React.FormEvent} e - 表单提交事件
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Save, Loader2, Globe, Github, CheckCircle2, XCircle, AlertCircle, FileText, Upload, Link as LinkIcon, Image as ImageIcon, Trash2, MessageSquare, PlayCircle } from 'lucide-react';
+import { Save, Loader2, Globe, CheckCircle2, XCircle, AlertCircle, FileText, Upload, Link as LinkIcon, Image as ImageIcon, Trash2, UserCircle, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSiteStore } from '@/lib/store/useSiteStore';
 
 /**
  * Toast 提示组件
+ * 显示临时的操作结果提示
+ * @param props - 包含 message, type, onClose 的属性对象
+ * @returns JSX.Element
  */
 const Toast = ({ 
   message, 
@@ -51,17 +55,23 @@ const Toast = ({
   );
 };
 
+/**
+ * 站点设置组件
+ * 管理博客的全局配置、SEO 信息、社交链接和首页背景
+ * @returns JSX.Element
+ */
 export default function SiteSettings() {
+  const storeUser = useSiteStore((state) => state.user);
+  const updateUserInStore = useSiteStore((state) => state.updateUser);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
-    site_title: '',
-    site_description: '',
-    site_keywords: '',
-    site_start_date: '',
     footer_text: '',
     github_url: '',
     gitee_url: '',
@@ -70,6 +80,59 @@ export default function SiteSettings() {
     douyin_url: '',
     home_background_url: '',
   });
+
+  // Profile State
+  const [user, setUser] = useState<any>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [profileData, setProfileData] = useState({
+    fullName: '',
+    email: '',
+    bio: '',
+    avatarUrl: '',
+    site_start_date: '',
+  });
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+
+  // 使用 Store 中的用户信息初始化表单
+  useEffect(() => {
+    if (storeUser) {
+      setProfileData(prev => ({
+        ...prev,
+        fullName: storeUser.fullName || '',
+        email: storeUser.email || '',
+        bio: storeUser.bio || '',
+        avatarUrl: storeUser.avatarUrl || '',
+      }));
+    }
+  }, [storeUser]);
+
+  useEffect(() => {
+    /**
+     * 获取用户信息
+     */
+    const fetchUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
+          // 如果 store 中没有数据，则使用 auth user 数据初始化
+          if (!storeUser) {
+            setProfileData(prev => ({
+              ...prev,
+              fullName: user.user_metadata?.full_name || '',
+              email: user.email || '',
+              bio: user.user_metadata?.bio || '',
+              avatarUrl: user.user_metadata?.avatar_url || '',
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    fetchUser();
+  }, [storeUser]);
 
   // 允许的外部图片域名白名单
   const allowedDomains = [
@@ -81,12 +144,19 @@ export default function SiteSettings() {
   ];
 
   useEffect(() => {
+    /**
+     * 从 API 获取当前站点设置
+     */
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/settings');
         const json = await res.json();
         if (json.data) {
-          setFormData(prev => ({ ...prev, ...json.data }));
+          const { site_title, site_description, site_keywords, site_start_date, ...rest } = json.data;
+          setFormData(prev => ({ ...prev, ...rest }));
+          if (site_start_date) {
+            setProfileData(prev => ({ ...prev, site_start_date: site_start_date || '' }));
+          }
         }
       } catch (error) {
         console.error('Fetch settings error:', error);
@@ -97,13 +167,19 @@ export default function SiteSettings() {
     fetchSettings();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * 处理表单输入变更
+   * @param e - HTML 输入框变更事件
+   */
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value || '' }));
   };
 
   /**
-   * 校验外部链接域名
+   * 校验外部链接域名是否在白名单内
+   * @param url - 待校验的图片 URL
+   * @returns boolean - 是否允许
    */
   const validateImageUrl = (url: string) => {
     if (!url) return true;
@@ -116,7 +192,8 @@ export default function SiteSettings() {
   };
 
   /**
-   * 处理本地图片上传
+   * 处理本地图片上传并同步到数据库
+   * @param e - 文件选择事件
    */
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -195,6 +272,10 @@ export default function SiteSettings() {
     }
   };
 
+  /**
+   * 处理设置表单提交
+   * @param e - 表单提交事件
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -236,6 +317,144 @@ export default function SiteSettings() {
   };
 
   /**
+   * 处理个人资料字段变更
+   * @param e - 输入框或文本域变更事件
+   */
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({ ...prev, [name]: value || '' }));
+    // 清除对应字段的错误
+    if (profileErrors[name]) {
+      setProfileErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+  };
+
+  /**
+   * 处理头像上传并获取 URL
+   * @param e - 文件选择事件
+   */
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证大小 (例如 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setToast({ message: '图片大小不能超过 2MB', type: 'error' });
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('type', 'avatar');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: uploadFormData,
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        setProfileData(prev => ({ ...prev, avatarUrl: json.data.url }));
+        setToast({ message: '头像上传成功', type: 'success' });
+      } else {
+        setToast({ message: '上传失败: ' + json.error, type: 'error' });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setToast({ message: '上传出错', type: 'error' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  /**
+   * 保存个人资料到 Auth 及 site_config
+   * @param e - 表单提交事件
+   */
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // 简单验证
+    const errors: Record<string, string> = {};
+    if (!profileData.fullName.trim()) errors.fullName = '名称不能为空';
+    if (!profileData.email.trim()) errors.email = '邮箱不能为空';
+    if (!profileData.bio.trim()) errors.bio = '介绍不能为空';
+    
+    if (Object.keys(errors).length > 0) {
+      setProfileErrors(errors);
+      return;
+    }
+
+    setProfileSaving(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: profileData.email !== user?.email ? profileData.email : undefined,
+        data: {
+          full_name: profileData.fullName,
+          bio: profileData.bio,
+          avatar_url: profileData.avatarUrl,
+        },
+      });
+
+      if (error) throw error;
+
+      // 同步更新 site_config 表，以便前端实时同步
+      const configUpdates = [
+        { key: 'site_name', value: profileData.fullName },
+        { key: 'avatar_url', value: profileData.avatarUrl },
+        { key: 'intro', value: profileData.bio },
+        { key: 'site_start_date', value: profileData.site_start_date }
+      ];
+
+      for (const item of configUpdates) {
+        await supabase
+          .from('site_config')
+          .upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
+      }
+
+      // 强制刷新本地缓存
+      await supabase.auth.refreshSession();
+      
+      // 更新全局 Store
+      updateUserInStore({
+        fullName: profileData.fullName,
+        avatarUrl: profileData.avatarUrl,
+        email: profileData.email,
+        bio: profileData.bio,
+      });
+      
+      // 更新本地用户状态
+      const { data: { user: updatedUser } } = await supabase.auth.getUser();
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+
+      setToast({ 
+        message: profileData.email !== user?.email ? '个人信息已保存，请查收新邮箱确认邮件。' : '个人信息已成功保存', 
+        type: 'success' 
+      });
+    } catch (error: any) {
+      console.error('Profile save error:', error);
+      setToast({ message: '保存失败: ' + error.message, type: 'error' });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  /**
    * 移除背景图并同步到数据库
    */
   const handleRemoveBackground = async () => {
@@ -260,17 +479,19 @@ export default function SiteSettings() {
     }
   };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 space-y-4">
-      <div className="relative">
-        <div className="w-12 h-12 border-4 border-[#165DFF]/20 border-t-[#165DFF] rounded-full animate-spin" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-2 h-2 bg-[#165DFF] rounded-full animate-pulse" />
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="relative">
+          <div className="w-12 h-12 border-4 border-[#165DFF]/20 border-t-[#165DFF] rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-2 h-2 bg-[#165DFF] rounded-full animate-pulse" />
+          </div>
         </div>
+        <span className="text-sm font-medium text-[#86909C] animate-pulse">正在加载系统配置...</span>
       </div>
-      <span className="text-sm font-medium text-[#86909C] animate-pulse">正在加载系统配置...</span>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="space-y-5 animate-in fade-in duration-700">
@@ -283,7 +504,7 @@ export default function SiteSettings() {
         />
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-5">
         {/* 顶部标题与保存按钮 */}
         <div className="bg-white p-5 rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#F2F3F5] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -291,7 +512,8 @@ export default function SiteSettings() {
             <p className="text-[#86909C] mt-1 text-sm">管理您的博客站点信息、SEO 及社交链接</p>
           </div>
           <Button 
-            type="submit" 
+            type="button" 
+            onClick={handleSubmit}
             disabled={saving} 
             className="w-full sm:w-auto h-10 bg-[#40A9FF] hover:bg-[#1890FF] text-white font-medium rounded-xl shadow-[0_4px_12px_rgba(64,169,255,0.2)] transition-all flex items-center justify-center gap-2 px-6"
           >
@@ -304,182 +526,167 @@ export default function SiteSettings() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
-            {/* 站点基本信息 */}
+            {/* 个人资料卡片 */}
             <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
               <CardHeader className="border-b border-[#F2F3F5] bg-[#F9FBFF]/50 py-4 px-6">
                 <CardTitle className="text-base font-bold text-[#1D2129] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-1 h-4 bg-[#165DFF] rounded-full" />
-                    站点基本信息
+                    个人资料
                   </div>
-                  <Globe className="h-4 w-4 text-[#165DFF] opacity-50" />
+                  <UserCircle className="h-4 w-4 text-[#165DFF] opacity-50" />
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="site_title" className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                    网站标题
-                  </Label>
-                  <Input
-                    id="site_title"
-                    name="site_title"
-                    value={formData.site_title}
-                    onChange={handleChange}
-                    placeholder="例如: 我的技术博客"
-                    className="h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="site_keywords" className="text-sm font-bold text-[#4E5969]">关键词 (SEO)</Label>
-                  <Input
-                    id="site_keywords"
-                    name="site_keywords"
-                    value={formData.site_keywords}
-                    onChange={handleChange}
-                    placeholder="技术, 编程, 生活 (用逗号分隔)"
-                    className="h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                  />
-                </div>
+              <CardContent className="p-6">
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+                        <span className="text-[#F53F3F]">*</span> 名称
+                      </Label>
+                      <Input
+                        name="fullName"
+                        value={profileData.fullName}
+                        onChange={handleProfileChange}
+                        placeholder="请输入显示名称"
+                        className={cn(
+                          "h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
+                          profileErrors.fullName && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+                        )}
+                      />
+                      {profileErrors.fullName && (
+                        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+                          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+                          {profileErrors.fullName}
+                        </p>
+                      )}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="site_start_date" className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                    建站日期
-                    <span className="text-[10px] font-normal text-[#86909C]">(用于计算站点运行时间)</span>
-                  </Label>
-                  <Input
-                    id="site_start_date"
-                    name="site_start_date"
-                    type="date"
-                    value={formData.site_start_date}
-                    onChange={handleChange}
-                    className="h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+                        <span className="text-[#F53F3F]">*</span> 邮箱
+                      </Label>
+                      <div className="relative group">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+                        <Input
+                          name="email"
+                          type="email"
+                          value={profileData.email}
+                          onChange={handleProfileChange}
+                          placeholder="example@email.com"
+                          className={cn(
+                            "h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
+                            profileErrors.email && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+                          )}
+                        />
+                      </div>
+                      {profileErrors.email && (
+                        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+                          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+                          {profileErrors.email}
+                        </p>
+                      )}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="site_description" className="text-sm font-bold text-[#4E5969]">网站描述</Label>
-                  <textarea
-                    id="site_description"
-                    name="site_description"
-                    value={formData.site_description}
-                    onChange={(e: any) => handleChange(e)}
-                    placeholder="简短描述您的博客内容..."
-                    className="w-full min-h-[100px] p-3 text-sm border border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30 resize-none outline-none"
-                  />
-                </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+                        <span className="text-[#F53F3F]">*</span> 头像
+                      </Label>
+                      <div className="flex gap-3">
+                        <div className="relative flex-1 group">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full overflow-hidden border border-[#E5E6EB]">
+                            {profileData.avatarUrl ? (
+                              <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              <UserCircle className="w-full h-full text-[#C9CDD4]" />
+                            )}
+                          </div>
+                          <Input
+                            name="avatarUrl"
+                            value={profileData.avatarUrl}
+                            onChange={handleProfileChange}
+                            placeholder="https://example.com/avatar.png"
+                            className="h-11 pl-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                          />
+                        </div>
+                        <input
+                          type="file"
+                          ref={profileFileInputRef}
+                          onChange={handleAvatarUpload}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => profileFileInputRef.current?.click()}
+                          disabled={uploadingAvatar}
+                          className="h-11 px-4 border-[#E5E6EB] text-[#4E5969] hover:bg-[#F2F3F5] rounded-xl flex-shrink-0 transition-all active:scale-95"
+                        >
+                          {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={18} />}
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-[#86909C]">支持 JPG、PNG、GIF 格式，大小不超过 2MB</p>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="site_start_date" className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+                        建站日期
+                        <span className="text-[10px] font-normal text-[#86909C]">(用于计算站点运行时间)</span>
+                      </Label>
+                      <Input
+                        id="site_start_date"
+                        name="site_start_date"
+                        type="date"
+                        value={profileData.site_start_date}
+                        onChange={handleProfileChange}
+                        className="h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+                        <span className="text-[#F53F3F]">*</span> 个人介绍
+                      </Label>
+                      <div className="relative group">
+                        <FileText className="absolute left-3 top-3 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+                        <textarea
+                          name="bio"
+                          value={profileData.bio}
+                          onChange={handleProfileChange}
+                          rows={4}
+                          className={cn(
+                            "w-full pl-10 pr-4 py-3 border border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all outline-none text-[#1D2129] text-sm resize-none bg-[#F9FBFF]/30",
+                            profileErrors.bio && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+                          )}
+                          placeholder="写点什么介绍一下自己吧..."
+                        />
+                      </div>
+                      {profileErrors.bio && (
+                        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+                          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+                          {profileErrors.bio}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={profileSaving}
+                      className="h-10 bg-[#40A9FF] hover:bg-[#1890FF] text-white font-medium rounded-xl transition-all shadow-[0_4px_12px_rgba(64,169,255,0.2)] flex items-center gap-2 px-6"
+                    >
+                      {profileSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {profileSaving ? '正在保存...' : '保存个人资料'}
+                    </Button>
+                  </div>
+                </form>
               </CardContent>
             </Card>
 
-            {/* 社交链接 */}
-            <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
-              <CardHeader className="border-b border-[#F2F3F5] bg-[#F9FBFF]/50 py-4 px-6">
-                <CardTitle className="text-base font-bold text-[#1D2129] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 bg-[#165DFF] rounded-full" />
-                    社交媒体
-                  </div>
-                  <div className="flex gap-1.5 items-center">
-                    <img src="/svg/github.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/gitee.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/weixin.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/QQ.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/抖音.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="github_url" className="text-sm font-bold text-[#4E5969]">GitHub</Label>
-                  <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/github.svg" alt="GitHub" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
-                    </div>
-                    <Input
-                      id="github_url"
-                      name="github_url"
-                      value={formData.github_url}
-                      onChange={handleChange}
-                      placeholder="https://github.com/username"
-                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gitee_url" className="text-sm font-bold text-[#4E5969]">Gitee</Label>
-                  <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/gitee.svg" alt="Gitee" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
-                    </div>
-                    <Input
-                      id="gitee_url"
-                      name="gitee_url"
-                      value={formData.gitee_url}
-                      onChange={handleChange}
-                      placeholder="https://gitee.com/username"
-                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="wechat_url" className="text-sm font-bold text-[#4E5969]">微信</Label>
-                  <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/weixin.svg" alt="微信" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
-                    </div>
-                    <Input
-                      id="wechat_url"
-                      name="wechat_url"
-                      value={formData.wechat_url}
-                      onChange={handleChange}
-                      placeholder="微信联系方式或主页链接"
-                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="qq_url" className="text-sm font-bold text-[#4E5969]">QQ</Label>
-                  <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/QQ.svg" alt="QQ" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
-                    </div>
-                    <Input
-                      id="qq_url"
-                      name="qq_url"
-                      value={formData.qq_url}
-                      onChange={handleChange}
-                      placeholder="QQ 联系方式链接"
-                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="douyin_url" className="text-sm font-bold text-[#4E5969]">抖音</Label>
-                  <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/抖音.svg" alt="抖音" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
-                    </div>
-                    <Input
-                      id="douyin_url"
-                      name="douyin_url"
-                      value={formData.douyin_url}
-                      onChange={handleChange}
-                      placeholder="抖音个人主页链接"
-                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
             {/* 首页背景设置 */}
             <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
               <CardHeader className="border-b border-[#F2F3F5] bg-[#F9FBFF]/50 py-4 px-6">
@@ -610,6 +817,113 @@ export default function SiteSettings() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="space-y-6">
+            {/* 社交链接 */}
+            <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
+              <CardHeader className="border-b border-[#F2F3F5] bg-[#F9FBFF]/50 py-4 px-6">
+                <CardTitle className="text-base font-bold text-[#1D2129] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-4 bg-[#165DFF] rounded-full" />
+                    社交媒体
+                  </div>
+                  <div className="flex gap-1.5 items-center">
+                    <img src="/svg/github.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
+                    <img src="/svg/gitee.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
+                    <img src="/svg/weixin.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
+                    <img src="/svg/QQ.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
+                    <img src="/svg/抖音.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="github_url" className="text-sm font-bold text-[#4E5969]">GitHub</Label>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
+                      <img src="/svg/github.svg" alt="GitHub" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    </div>
+                    <Input
+                      id="github_url"
+                      name="github_url"
+                      value={formData.github_url}
+                      onChange={handleChange}
+                      placeholder="https://github.com/username"
+                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                     />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gitee_url" className="text-sm font-bold text-[#4E5969]">Gitee</Label>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
+                      <img src="/svg/gitee.svg" alt="Gitee" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    </div>
+                    <Input
+                      id="gitee_url"
+                      name="gitee_url"
+                      value={formData.gitee_url}
+                      onChange={handleChange}
+                      placeholder="https://gitee.com/username"
+                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="wechat_url" className="text-sm font-bold text-[#4E5969]">微信</Label>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
+                      <img src="/svg/weixin.svg" alt="微信" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    </div>
+                    <Input
+                      id="wechat_url"
+                      name="wechat_url"
+                      value={formData.wechat_url}
+                      onChange={handleChange}
+                      placeholder="微信联系方式或主页链接"
+                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="qq_url" className="text-sm font-bold text-[#4E5969]">QQ</Label>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
+                      <img src="/svg/QQ.svg" alt="QQ" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    </div>
+                    <Input
+                      id="qq_url"
+                      name="qq_url"
+                      value={formData.qq_url}
+                      onChange={handleChange}
+                      placeholder="QQ 联系方式链接"
+                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="douyin_url" className="text-sm font-bold text-[#4E5969]">抖音</Label>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
+                      <img src="/svg/抖音.svg" alt="抖音" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    </div>
+                    <Input
+                      id="douyin_url"
+                      name="douyin_url"
+                      value={formData.douyin_url}
+                      onChange={handleChange}
+                      placeholder="抖音个人主页链接"
+                      className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* 页脚设置 */}
             <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
@@ -639,7 +953,7 @@ export default function SiteSettings() {
             </Card>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

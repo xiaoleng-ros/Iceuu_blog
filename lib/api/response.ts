@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { AppError, getErrorMessage, getErrorStatusCode, getErrorCode } from './error';
+import { getErrorMessage, getErrorStatusCode, getErrorCode } from './error';
 
 /**
  * 成功响应数据结构
@@ -42,10 +42,10 @@ export interface PaginatedResponse<T = unknown> {
 
 /**
  * 创建成功响应
- * @param data 响应数据
- * @param message 可选的成功消息
- * @param status HTTP 状态码，默认 200
- * @returns NextResponse 对象
+ * @param {T} data - 响应数据
+ * @param {string} [message] - 可选的成功消息
+ * @param {number} [status=200] - HTTP 状态码
+ * @returns {NextResponse<SuccessResponse<T>>}
  */
 export function successResponse<T>(
   data: T,
@@ -64,11 +64,11 @@ export function successResponse<T>(
 
 /**
  * 创建分页响应
- * @param data 响应数据数组
- * @param total 总记录数
- * @param page 当前页码
- * @param limit 每页记录数
- * @returns NextResponse 对象
+ * @param {T[]} data - 响应数据数组
+ * @param {number} total - 总记录数
+ * @param {number} page - 当前页码
+ * @param {number} limit - 每页记录数
+ * @returns {NextResponse<PaginatedResponse<T>>}
  */
 export function paginatedResponse<T>(
   data: T[],
@@ -90,8 +90,8 @@ export function paginatedResponse<T>(
 
 /**
  * 创建错误响应
- * @param error 错误对象
- * @returns NextResponse 对象
+ * @param {unknown} error - 错误对象
+ * @returns {NextResponse<ErrorResponse>}
  */
 export function errorResponse(error: unknown): NextResponse<ErrorResponse> {
   const statusCode = getErrorStatusCode(error);
@@ -112,10 +112,10 @@ export function errorResponse(error: unknown): NextResponse<ErrorResponse> {
 
 /**
  * 创建自定义错误响应
- * @param message 错误消息
- * @param status HTTP 状态码
- * @param code 可选的错误代码
- * @returns NextResponse 对象
+ * @param {string} message - 错误消息
+ * @param {number} [status=500] - HTTP 状态码
+ * @param {string} [code] - 可选的错误代码
+ * @returns {NextResponse<ErrorResponse>}
  */
 export function customErrorResponse(
   message: string,
@@ -136,8 +136,8 @@ export function customErrorResponse(
 
 /**
  * 创建未授权响应
- * @param message 错误消息，默认为 '未授权'
- * @returns NextResponse 对象
+ * @param {string} [message='未授权，请先登录'] - 错误消息
+ * @returns {NextResponse<ErrorResponse>}
  */
 export function unauthorizedResponse(
   message: string = '未授权，请先登录'
@@ -147,8 +147,8 @@ export function unauthorizedResponse(
 
 /**
  * 创建验证错误响应
- * @param message 错误消息，默认为 '请求参数验证失败'
- * @returns NextResponse 对象
+ * @param {string} [message='请求参数验证失败'] - 错误消息
+ * @returns {NextResponse<ErrorResponse>}
  */
 export function validationErrorResponse(
   message: string = '请求参数验证失败'
@@ -158,8 +158,8 @@ export function validationErrorResponse(
 
 /**
  * 创建未找到响应
- * @param message 错误消息，默认为 '资源未找到'
- * @returns NextResponse 对象
+ * @param {string} [message='资源未找到'] - 错误消息
+ * @returns {NextResponse<ErrorResponse>}
  */
 export function notFoundResponse(
   message: string = '资源未找到'

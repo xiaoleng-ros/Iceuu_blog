@@ -1,9 +1,9 @@
 /**
  * API 接口类型定义
- * 定义 API 请求和响应的数据结构
+ * 定义 API 请求和响应的数据结构，用于前后端数据交互
  */
 
-import { Blog, Media, SiteConfig, User } from './database';
+import { Blog, User } from './database';
 
 /**
  * 登录请求
