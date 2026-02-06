@@ -3,8 +3,6 @@ import "./globals.css";
 import { supabase } from "@/lib/supabase";
 import StoreInitializer from "@/components/layout/StoreInitializer";
 
-export const runtime = 'edge';
-
 /**
  * 动态生成页面元数据
  * 从数据库中获取 site_name 作为标题前缀

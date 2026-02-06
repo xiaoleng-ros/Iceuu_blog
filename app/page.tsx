@@ -5,8 +5,6 @@ import Sidebar from '@/components/home/Sidebar';
 import PostList from '@/components/home/PostList';
 import Pagination from '@/components/ui/Pagination';
 
-export const runtime = 'edge';
-
 // Revalidate home page every 60 seconds
 export const revalidate = 60;
 
