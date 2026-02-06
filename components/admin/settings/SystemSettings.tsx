@@ -61,9 +61,6 @@ const Toast = ({
  * @returns JSX.Element
  */
 export default function SystemSettings() {
-  const storeUser = useSiteStore((state) => state.user);
-  const updateUserInStore = useSiteStore((state) => state.updateUser);
-  
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);

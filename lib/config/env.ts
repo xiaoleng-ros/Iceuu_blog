@@ -41,8 +41,12 @@ function validateOptionalEnvVar(name: string, value: string | undefined): string
  * Supabase 配置（必需）
  */
 export const supabaseConfig = {
-  url: validateEnvVar('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_URL),
-  anonKey: validateEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY', SUPABASE_ANON_KEY),
+  get url() {
+    return validateEnvVar('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_URL);
+  },
+  get anonKey() {
+    return validateEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY', SUPABASE_ANON_KEY);
+  },
 };
 
 /**

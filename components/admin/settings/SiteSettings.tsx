@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Save, Loader2, Globe, CheckCircle2, XCircle, AlertCircle, FileText, Upload, Link as LinkIcon, Image as ImageIcon, Trash2, UserCircle, Mail } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, XCircle, AlertCircle, FileText, Upload, Link as LinkIcon, Image as ImageIcon, Trash2, UserCircle, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteStore } from '@/lib/store/useSiteStore';
 

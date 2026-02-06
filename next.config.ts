@@ -40,7 +40,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns', 'clsx', 'tailwind-merge'],
   },
   // 核心优化项：
-  output: 'standalone' as const, // 独立打包模式
   productionBrowserSourceMaps: false, // 禁用生产环境 Source Map
 };
 
