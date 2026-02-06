@@ -1,4 +1,8 @@
 name = "iceuu-blog"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".next"
+pages_build_output_dir = ".vercel/output"
+
+[vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://jnojnkpgmdwfjbdpqmaa.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_ZDwIRehVsS6ltOiHl7PtUQ_-F1Sh21i"
