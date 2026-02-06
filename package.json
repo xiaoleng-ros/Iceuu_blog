@@ -13,7 +13,7 @@
     "cf-typegen": "wrangler types"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": "22.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.91.0",
