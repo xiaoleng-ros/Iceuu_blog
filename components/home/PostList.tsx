@@ -1,14 +1,10 @@
 import WidePostCard from './WidePostCard';
-
-interface PostListProps {
-  posts: any[];
-}
+import { PostListProps } from '@/types/components';
 
 /**
  * 首页文章列表组件
  * 负责渲染文章卡片集合，并在无内容时显示空状态
  * @param {PostListProps} props - 组件属性
- * @param {any[]} props.posts - 文章数据数组
  * @returns {JSX.Element} - 返回文章列表 JSX
  */
 export default function PostList({ posts }: PostListProps) {

@@ -2,17 +2,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { Clock, Tag } from 'lucide-react';
-
-interface WidePostCardProps {
-  post: any;
-  index: number;
-}
+import { WidePostCardProps } from '@/types/components';
 
 /**
  * 首页文章列表卡片组件 - 实现交错式横向布局
  * @param {WidePostCardProps} props - 组件属性
- * @param {any} props.post - 文章数据
- * @param {number} props.index - 索引，用于决定布局方向
  * @returns {JSX.Element} - 返回文章卡片 JSX
  */
 export default function WidePostCard({ post, index }: WidePostCardProps) {
