@@ -1,5 +1,6 @@
 import React from 'react'; 
 import Link from 'next/link'; 
+import Image from 'next/image'; 
 
 interface Info { 
     id: string; 
@@ -65,10 +66,12 @@ const UpAndDown = ({ id, prev, next }: Props) => {
                 {/* 背景图片 */}
                 {hasImage && (
                     <div className="absolute inset-0 z-0">
-                        <img 
+                        <Image 
                             src={displayImage} 
                             alt="" 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            unoptimized
                         />
                         <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
                     </div>

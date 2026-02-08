@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GraduationCap } from 'lucide-react';
+import Image from 'next/image';
 import { useSiteStore } from '@/lib/store/useSiteStore';
 import IconCloud from './IconCloud';
 import { useState, useEffect } from 'react';
@@ -55,17 +56,13 @@ export default function Sidebar(_props: SidebarProps) {
         <div className="h-24 bg-[url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center relative">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-            <div className="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-white shadow-md">
-              <img 
+            <div className="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-white shadow-md relative">
+              <Image 
                 src={config.avatar_url || 'https://github.com/shadcn.png'} 
                 alt="Profile"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (target.src !== 'https://github.com/shadcn.png') {
-                    target.src = 'https://github.com/shadcn.png';
-                  }
-                }}
+                fill
+                className="object-cover"
+                unoptimized
               />
             </div>
           </div>
@@ -95,7 +92,7 @@ export default function Sidebar(_props: SidebarProps) {
                   className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-black/10 transition-all duration-300"
                   title="GitHub"
                 >
-                  <img src="/svg/github.svg" alt="GitHub" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  <Image src="/svg/github.svg" alt="GitHub" width={20} height={20} className="transition-transform group-hover:scale-110" />
                 </a>
               )}
               {config.gitee_url && (
@@ -106,7 +103,7 @@ export default function Sidebar(_props: SidebarProps) {
                   className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-[#c71d23]/10 transition-all duration-300"
                   title="Gitee"
                 >
-                  <img src="/svg/gitee.svg" alt="Gitee" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  <Image src="/svg/gitee.svg" alt="Gitee" width={20} height={20} className="transition-transform group-hover:scale-110" />
                 </a>
               )}
               {config.wechat_url && (
@@ -117,7 +114,7 @@ export default function Sidebar(_props: SidebarProps) {
                   className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-[#07c160]/10 transition-all duration-300"
                   title="微信"
                 >
-                  <img src="/svg/weixin.svg" alt="微信" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  <Image src="/svg/weixin.svg" alt="微信" width={20} height={20} className="transition-transform group-hover:scale-110" />
                 </a>
               )}
               {config.douyin_url && (
@@ -128,7 +125,7 @@ export default function Sidebar(_props: SidebarProps) {
                   className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-black/5 transition-all duration-300"
                   title="抖音"
                 >
-                  <img src="/svg/抖音.svg" alt="抖音" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  <Image src="/svg/抖音.svg" alt="抖音" width={20} height={20} className="transition-transform group-hover:scale-110" />
                 </a>
               )}
               {config.qq_url && (
@@ -139,7 +136,7 @@ export default function Sidebar(_props: SidebarProps) {
                   className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 hover:bg-[#12b7f5]/10 transition-all duration-300"
                   title="QQ"
                 >
-                  <img src="/svg/QQ.svg" alt="QQ" className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  <Image src="/svg/QQ.svg" alt="QQ" width={20} height={20} className="transition-transform group-hover:scale-110" />
                 </a>
               )}
             </div>

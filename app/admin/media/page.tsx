@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -362,12 +363,12 @@ export default function MediaPage() {
               className="group relative bg-white border border-[#F2F3F5] hover:border-[#165DFF]/30 rounded-2xl overflow-hidden hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 fill-mode-both"
             >
               <div className="aspect-square relative bg-[#F7F8FA] overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
+                <Image 
                   src={item.url} 
                   alt={item.filename}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  unoptimized
                 />
                 
                 {/* Overlay Actions */}
@@ -468,9 +469,8 @@ export default function MediaPage() {
                 {filteredMedia.map((item) => (
                   <tr key={item.id} className="hover:bg-[#F9FBFF] transition-colors group">
                     <td className="px-6 py-3">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E5E6EB] bg-[#F7F8FA]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.url} alt="" className="w-full h-full object-cover" />
+                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E5E6EB] bg-[#F7F8FA] relative">
+                        <Image src={item.url} alt="" fill className="object-cover" unoptimized />
                       </div>
                     </td>
                     <td className="px-6 py-3">
@@ -575,11 +575,13 @@ export default function MediaPage() {
               </button>
             </div>
             <div className="flex-1 overflow-auto bg-[#F7F8FA] p-4 flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
+              <Image 
                 src={previewItem.url} 
                 alt={previewItem.filename} 
+                width={1200}
+                height={800}
                 className="max-w-full max-h-full object-contain shadow-lg rounded-lg" 
+                unoptimized
               />
             </div>
             <div className="p-4 border-t border-[#F2F3F5] flex justify-between items-center bg-white">

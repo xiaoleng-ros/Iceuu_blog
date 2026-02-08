@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 /**
  * 3D 旋转图标云组件
@@ -149,10 +150,12 @@ export default function IconCloud({ icons }: IconCloudProps) {
             zIndex: Math.round(pos.z + 100),
           }}
         >
-          <img 
+          <Image 
             src={`/svg/${encodeURIComponent(pos.fileName)}`} 
             alt={pos.fileName}
-            className="w-8 h-8 object-contain drop-shadow-sm"
+            width={32}
+            height={32}
+            className="object-contain drop-shadow-sm"
             title={pos.fileName.replace('.svg', '')}
           />
         </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 import { ChevronDown, Settings, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteStore } from '@/lib/store/useSiteStore';
@@ -73,12 +74,14 @@ export default function AdminHeader() {
             <p className="text-[12px] text-[#86909C]">管理员</p>
           </div>
           
-          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center">
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center relative">
             {avatarUrl ? (
-              <img 
+              <Image 
                 src={avatarUrl} 
                 alt="Avatar" 
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                unoptimized
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-[#165DFF]/10 to-[#165DFF]/5 flex items-center justify-center">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
@@ -561,13 +562,12 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
                 
                 {formData.cover_image ? (
                   <>
-                    <img 
+                    <Image 
                       src={formData.cover_image} 
                       alt="Cover preview" 
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Invalid+Image+URL';
-                      }}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                       <div className="flex items-center gap-2">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -601,7 +602,15 @@ export default function SiteSettings() {
                         <div className="relative flex-1 group">
                           <div className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full overflow-hidden border border-[#E5E6EB]">
                             {profileData.avatarUrl ? (
-                              <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                            <div className="w-full h-full relative">
+                              <Image 
+                                src={profileData.avatarUrl} 
+                                alt="Avatar" 
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            </div>
                             ) : (
                               <UserCircle className="w-full h-full text-[#C9CDD4]" />
                             )}
@@ -716,10 +725,12 @@ export default function SiteSettings() {
                   >
                     {formData.home_background_url ? (
                       <>
-                        <img 
+                        <Image 
                           src={formData.home_background_url} 
                           alt="Background Preview" 
-                          className={`w-full h-full object-cover transition-all duration-500 ${uploading ? 'opacity-30 blur-sm' : 'group-hover:scale-105'}`}
+                          fill
+                          className={`object-cover transition-all duration-500 ${uploading ? 'opacity-30 blur-sm' : 'group-hover:scale-105'}`}
+                          unoptimized
                         />
                         
                         {/* 悬浮操作层 */}
@@ -831,12 +842,12 @@ export default function SiteSettings() {
                     <div className="w-1 h-4 bg-[#165DFF] rounded-full" />
                     社交媒体
                   </div>
-                  <div className="flex gap-1.5 items-center">
-                    <img src="/svg/github.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/gitee.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/weixin.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/QQ.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
-                    <img src="/svg/抖音.svg" className="h-3.5 w-3.5 opacity-50" alt="" />
+                  <div className="flex -space-x-1.5 overflow-hidden">
+                    <Image src="/svg/github.svg" width={14} height={14} className="opacity-50" alt="" />
+                    <Image src="/svg/gitee.svg" width={14} height={14} className="opacity-50" alt="" />
+                    <Image src="/svg/weixin.svg" width={14} height={14} className="opacity-50" alt="" />
+                    <Image src="/svg/QQ.svg" width={14} height={14} className="opacity-50" alt="" />
+                    <Image src="/svg/抖音.svg" width={14} height={14} className="opacity-50" alt="" />
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -844,8 +855,8 @@ export default function SiteSettings() {
                 <div className="space-y-2">
                   <Label htmlFor="github_url" className="text-sm font-bold text-[#4E5969]">GitHub</Label>
                   <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/github.svg" alt="GitHub" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                      <Image src="/svg/github.svg" alt="GitHub" width={16} height={16} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
                     </div>
                     <Input
                       id="github_url"
@@ -861,8 +872,8 @@ export default function SiteSettings() {
                 <div className="space-y-2">
                   <Label htmlFor="gitee_url" className="text-sm font-bold text-[#4E5969]">Gitee</Label>
                   <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/gitee.svg" alt="Gitee" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                      <Image src="/svg/gitee.svg" alt="Gitee" width={16} height={16} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
                     </div>
                     <Input
                       id="gitee_url"
@@ -878,8 +889,8 @@ export default function SiteSettings() {
                 <div className="space-y-2">
                   <Label htmlFor="wechat_url" className="text-sm font-bold text-[#4E5969]">微信</Label>
                   <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/weixin.svg" alt="微信" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                      <Image src="/svg/weixin.svg" alt="微信" width={16} height={16} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
                     </div>
                     <Input
                       id="wechat_url"
@@ -895,8 +906,8 @@ export default function SiteSettings() {
                 <div className="space-y-2">
                   <Label htmlFor="qq_url" className="text-sm font-bold text-[#4E5969]">QQ</Label>
                   <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/QQ.svg" alt="QQ" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                      <Image src="/svg/QQ.svg" alt="QQ" width={16} height={16} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
                     </div>
                     <Input
                       id="qq_url"
@@ -912,8 +923,8 @@ export default function SiteSettings() {
                 <div className="space-y-2">
                   <Label htmlFor="douyin_url" className="text-sm font-bold text-[#4E5969]">抖音</Label>
                   <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 flex items-center justify-center transition-colors">
-                      <img src="/svg/抖音.svg" alt="抖音" className="h-4 w-4 opacity-70 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                      <Image src="/svg/抖音.svg" alt="抖音" width={16} height={16} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
                     </div>
                     <Input
                       id="douyin_url"
