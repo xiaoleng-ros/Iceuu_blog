@@ -11,39 +11,53 @@ export const revalidate = 60;
 /**
  * 获取最新发布的文章
  * 过滤掉草稿和已进入回收站的文章
- * @param page - 当前页码，默认为 1
- * @param pageSize - 每页显示数量，默认为 3
- * @returns Promise<any[]> - 返回文章列表数组
+ * @param {number} page - 当前页码，默认为 1
+ * @param {number} pageSize - 每页显示数量，默认为 3
+ * @returns {Promise<any[]>} - 返回文章列表数组
  */
 async function getLatestPosts(page: number = 1, pageSize: number = 3) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data } = await supabase
-    .from('blogs')
-    .select('id, title, excerpt, category, created_at, content, cover_image')
-    .eq('draft', false)
-    .or('is_deleted.is.null,is_deleted.eq.false')
-    .order('created_at', { ascending: false })
-    .range(from, to);
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('blogs')
+      .select('id, title, excerpt, category, created_at, content, cover_image')
+      .eq('draft', false)
+      .or('is_deleted.is.null,is_deleted.eq.false')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+      
+    if (error) {
+      console.error('获取最新文章失败:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (error) {
+    console.error('获取最新文章异常:', error);
+    return [];
+  }
 }
 
 /**
  * 获取站点全局配置
  * 从 site_config 表中读取键值对并转换为对象格式
- * @returns Promise<Record<string, any>> - 返回配置对象
+ * @returns {Promise<Record<string, any>>} - 返回配置对象
  */
 async function getSiteConfig() {
   try {
-    const { data } = await supabase.from('site_config').select('*');
+    const { data, error } = await supabase.from('site_config').select('*');
+    if (error) {
+      console.error('获取站点配置失败:', error.message);
+      return {};
+    }
     if (!data) return {};
     return data.reduce((acc: any, curr) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
   } catch (error) {
-    console.error('Error fetching site config:', error);
+    console.error('获取站点配置异常:', error);
     return {};
   }
 }
@@ -51,17 +65,23 @@ async function getSiteConfig() {
 /**
  * 获取已发布文章总数
  * 用于分页逻辑，排除草稿和回收站文章
- * @returns Promise<number> - 返回文章总数
+ * @returns {Promise<number>} - 返回文章总数
  */
 async function getTotalPosts() {
   try {
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('blogs')
       .select('*', { count: 'exact', head: true })
       .eq('draft', false)
       .or('is_deleted.is.null,is_deleted.eq.false');
+    
+    if (error) {
+      console.error('获取文章总数失败:', error.message);
+      return 0;
+    }
     return count || 0;
   } catch (error) {
+    console.error('获取文章总数异常:', error);
     return 0;
   }
 }
@@ -69,8 +89,9 @@ async function getTotalPosts() {
 /**
  * 博客首页组件
  * 展示 Hero 区域、文章列表、分页及侧边栏
- * @param props - 包含 searchParams 的 Promise
- * @returns Promise<JSX.Element>
+ * @param {Object} props - 组件属性
+ * @param {Promise<{ page?: string }>} props.searchParams - 包含查询参数的 Promise
+ * @returns {Promise<JSX.Element>} - 返回首页 JSX 结构
  */
 export default async function Home({
   searchParams,
