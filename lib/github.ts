@@ -44,7 +44,7 @@ function resolveConfig(config?: GitHubConfig): GitHubConfig {
       repo: githubConfig.repo,
       branch: githubConfig.branch,
     };
-  } catch (e) {
+  } catch (_e) {
     throw new Error('GitHub 配置不完整，请在管理后台 [系统设置] 中配置 GitHub 图床，或检查环境变量 GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
   }
 }
@@ -148,9 +148,10 @@ export async function uploadImageToGitHub(
     }
 
     return await response.json();
-  } catch (error: any) {
-    console.error('GitHub Upload Error:', error.message);
-    throw new Error(error.message || 'Failed to upload image to GitHub');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('GitHub Upload Error:', errorMessage);
+    throw new Error(errorMessage || 'Failed to upload image to GitHub');
   }
 }
 
@@ -223,9 +224,10 @@ export async function deleteFileFromGitHub(
       const errorData = (await deleteResponse.json()) as GitHubError;
       throw new Error(errorData.message || `GitHub API error (DELETE): ${deleteResponse.status}`);
     }
-  } catch (error: any) {
-    console.error('GitHub Delete Error:', error.message);
-    throw new Error(error.message || 'Failed to delete file from GitHub');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('GitHub Delete Error:', errorMessage);
+    throw new Error(errorMessage || 'Failed to delete file from GitHub');
   }
 }
 
