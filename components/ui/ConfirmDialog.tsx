@@ -14,6 +14,25 @@ interface ConfirmDialogProps {
   variant?: 'danger' | 'warning' | 'info';
 }
 
+// 根据不同变体定义样式
+const variantStyles = {
+  danger: {
+    icon: <AlertTriangle className="w-6 h-6 text-[#F53F3F]" />,
+    iconBg: 'bg-[#FFF2F2]',
+    button: 'bg-[#F53F3F] hover:bg-[#D32020] text-white border-transparent'
+  },
+  warning: {
+    icon: <AlertTriangle className="w-6 h-6 text-[#FF7D00]" />,
+    iconBg: 'bg-[#FFF7E8]',
+    button: 'bg-[#FF7D00] hover:bg-[#E67000] text-white border-transparent'
+  },
+  info: {
+    icon: <AlertTriangle className="w-6 h-6 text-[#165DFF]" />,
+    iconBg: 'bg-[#E8F3FF]',
+    button: 'bg-[#165DFF] hover:bg-[#0E42D2] text-white border-transparent'
+  }
+};
+
 /**
  * 确认对话框组件
  * 用于替代浏览器原生的 confirm()，提供更统一和美观的交互体验
@@ -55,25 +74,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
-  // 根据不同变体定义样式
-  const variantStyles = {
-    danger: {
-      icon: <AlertTriangle className="w-6 h-6 text-[#F53F3F]" />,
-      iconBg: 'bg-[#FFF2F2]',
-      button: 'bg-[#F53F3F] hover:bg-[#D32020] text-white border-transparent'
-    },
-    warning: {
-      icon: <AlertTriangle className="w-6 h-6 text-[#FF7D00]" />,
-      iconBg: 'bg-[#FFF7E8]',
-      button: 'bg-[#FF7D00] hover:bg-[#E67000] text-white border-transparent'
-    },
-    info: {
-      icon: <AlertTriangle className="w-6 h-6 text-[#165DFF]" />,
-      iconBg: 'bg-[#E8F3FF]',
-      button: 'bg-[#165DFF] hover:bg-[#0E42D2] text-white border-transparent'
-    }
-  };
 
   const style = variantStyles[variant as keyof typeof variantStyles] || variantStyles.danger;
 
@@ -133,3 +133,4 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     </div>
   );
 };
+
