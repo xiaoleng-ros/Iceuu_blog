@@ -13,33 +13,34 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 /**
  * 验证必需的环境变量
- * @param name 环境变量名称
- * @param value 环境变量值
- * @returns 环境变量值或占位符
- * @throws 如果在非构建环境下环境变量缺失则抛出错误
+ * @param {string} name - 环境变量名称
+ * @param {string | undefined} value - 环境变量值
+ * @returns {string} - 环境变量值或占位符
+ * @throws {Error} - 如果在非构建环境下环境变量缺失则抛出错误
  */
 function validateEnvVar(name: string, value: string | undefined): string {
   if (!value) {
     // 在构建阶段，如果环境变量缺失，返回一个占位符以防止构建进程因验证失败而中断
     const isBuildPhase = process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build';
     if (isBuildPhase) {
-      console.warn(`[Build Warning] 缺失环境变量: ${name}。将使用占位符完成构建。`);
+      console.warn(`[构建警告] 缺失必需的环境变量: ${name}。将使用占位符完成构建。`);
       return name.includes('URL') ? 'https://tmp-placeholder.supabase.co' : 'tmp-placeholder';
     }
-    throw new Error(`Missing required environment variable: ${name}`);
+    throw new Error(`缺少必需的环境变量: ${name}`);
   }
   return value;
 }
 
 /**
  * 验证可选的环境变量（用于延迟加载场景）
- * @param name 环境变量名称
- * @param value 环境变量值
- * @throws 如果环境变量缺失则抛出错误
+ * @param {string} name - 环境变量名称
+ * @param {string | undefined} value - 环境变量值
+ * @returns {string} - 环境变量值
+ * @throws {Error} - 如果环境变量缺失则抛出错误
  */
 function validateOptionalEnvVar(name: string, value: string | undefined): string {
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}. 请检查 .env.local 文件配置`);
+    throw new Error(`缺少可选但当前必需的环境变量: ${name}。请检查 .env.local 文件配置`);
   }
   return value;
 }
@@ -87,7 +88,7 @@ export const siteConfig = {
 
 /**
  * 检查所有必需的环境变量是否已配置
- * @returns 如果所有变量都已配置返回 true，否则返回 false
+ * @returns {boolean} - 如果所有变量都已配置返回 true，否则返回 false
  */
 export function validateAllEnvVars(): boolean {
   try {
@@ -95,14 +96,14 @@ export function validateAllEnvVars(): boolean {
     validateEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY', SUPABASE_ANON_KEY);
     return true;
   } catch (error) {
-    console.error('Environment validation failed:', error);
+    console.error('环境变量验证失败:', error);
     return false;
   }
 }
 
 /**
  * 检查 GitHub 配置是否完整
- * @returns 如果 GitHub 配置完整返回 true，否则返回 false
+ * @returns {boolean} - 如果 GitHub 配置完整返回 true，否则返回 false
  */
 export function validateGithubConfig(): boolean {
   try {
@@ -111,13 +112,14 @@ export function validateGithubConfig(): boolean {
     validateOptionalEnvVar('GITHUB_REPO', GITHUB_REPO);
     return true;
   } catch (error) {
-    console.error('GitHub config validation failed:', error);
+    console.error('GitHub 配置验证失败:', error);
     return false;
   }
 }
 
 /**
  * 获取环境变量配置摘要（用于调试）
+ * @returns {Object} - 包含各模块配置状态的摘要对象
  */
 export function getEnvSummary() {
   // 安全地获取 GitHub 配置（避免触发验证错误）

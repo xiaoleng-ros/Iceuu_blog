@@ -5,6 +5,9 @@
 
 /**
  * 自定义错误基类
+ * @param {string} message - 错误消息
+ * @param {number} [statusCode=500] - HTTP 状态码
+ * @param {string} [code] - 错误代码标识
  */
 export class AppError extends Error {
   constructor(
@@ -19,6 +22,7 @@ export class AppError extends Error {
 
 /**
  * 未授权错误
+ * @param {string} [message='未授权，请先登录'] - 错误消息
  */
 export class UnauthorizedError extends AppError {
   constructor(message: string = '未授权，请先登录') {
@@ -29,6 +33,7 @@ export class UnauthorizedError extends AppError {
 
 /**
  * 验证错误
+ * @param {string} [message='请求参数验证失败'] - 错误消息
  */
 export class ValidationError extends AppError {
   constructor(message: string = '请求参数验证失败') {
@@ -39,6 +44,7 @@ export class ValidationError extends AppError {
 
 /**
  * 未找到错误
+ * @param {string} [message='资源未找到'] - 错误消息
  */
 export class NotFoundError extends AppError {
   constructor(message: string = '资源未找到') {
@@ -49,6 +55,7 @@ export class NotFoundError extends AppError {
 
 /**
  * 环境变量错误
+ * @param {string} [message='环境变量配置错误'] - 错误消息
  */
 export class EnvironmentError extends AppError {
   constructor(message: string = '环境变量配置错误') {
@@ -59,6 +66,7 @@ export class EnvironmentError extends AppError {
 
 /**
  * 文件上传错误
+ * @param {string} [message='文件上传失败'] - 错误消息
  */
 export class UploadError extends AppError {
   constructor(message: string = '文件上传失败') {
@@ -69,6 +77,7 @@ export class UploadError extends AppError {
 
 /**
  * 数据库错误
+ * @param {string} [message='数据库操作失败'] - 错误消息
  */
 export class DatabaseError extends AppError {
   constructor(message: string = '数据库操作失败') {
@@ -79,8 +88,8 @@ export class DatabaseError extends AppError {
 
 /**
  * 判断是否为应用错误
- * @param error 错误对象
- * @returns 如果是应用错误返回 true
+ * @param {unknown} error - 待检查的错误对象
+ * @returns {boolean} - 如果是应用错误返回 true，否则返回 false
  */
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
@@ -88,8 +97,8 @@ export function isAppError(error: unknown): error is AppError {
 
 /**
  * 获取错误消息
- * @param error 错误对象
- * @returns 错误消息字符串
+ * @param {unknown} error - 错误对象
+ * @returns {string} - 错误消息字符串，默认为 '发生未知错误'
  */
 export function getErrorMessage(error: unknown): string {
   if (isAppError(error)) {
@@ -103,8 +112,8 @@ export function getErrorMessage(error: unknown): string {
 
 /**
  * 获取错误状态码
- * @param error 错误对象
- * @returns HTTP 状态码
+ * @param {unknown} error - 错误对象
+ * @returns {number} - HTTP 状态码，默认为 500
  */
 export function getErrorStatusCode(error: unknown): number {
   if (isAppError(error)) {
@@ -114,9 +123,9 @@ export function getErrorStatusCode(error: unknown): number {
 }
 
 /**
- * 获取错误代码
- * @param error 错误对象
- * @returns 错误代码
+ * 获取错误代码标识
+ * @param {unknown} error - 错误对象
+ * @returns {string | undefined} - 错误代码字符串或 undefined
  */
 export function getErrorCode(error: unknown): string | undefined {
   if (isAppError(error)) {

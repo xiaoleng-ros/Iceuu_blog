@@ -5,15 +5,18 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * 站点配置信息接口
+ * 采用键值对形式存储站点各项配置
  */
 interface SiteConfig {
+  /** 配置键值对，键为配置项名称，值为配置内容 */
   [key: string]: string | undefined;
 }
 
 /**
  * 实时获取和监听网站配置的 Hook
- * @param initialConfig 初始配置数据（通常来自服务端获取）
- * @returns 实时更新的配置数据
+ * 负责建立 Supabase 实时订阅，并在配置变更时同步更新状态
+ * @param {SiteConfig} initialConfig - 初始配置数据（通常来自服务端获取）
+ * @returns {SiteConfig} - 实时更新的配置状态数据
  */
 export function useSiteConfig(initialConfig: SiteConfig) {
   const [config, setConfig] = useState<SiteConfig>(initialConfig);

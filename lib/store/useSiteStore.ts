@@ -8,20 +8,35 @@ import { supabase } from '@/lib/supabase';
  * 站点配置信息接口
  */
 interface SiteConfig {
+  /** 站点名称 */
   site_name?: string;
+  /** 头像 URL */
   avatar_url?: string;
+  /** 个人简介 */
   intro?: string;
+  /** 站点标题 */
   site_title?: string;
+  /** 站点描述 */
   site_description?: string;
+  /** 站点关键词 */
   site_keywords?: string;
+  /** 站点开始运行日期 */
   site_start_date?: string;
+  /** 页脚文本 */
   footer_text?: string;
+  /** GitHub 链接 */
   github_url?: string;
+  /** Gitee 链接 */
   gitee_url?: string;
+  /** QQ 链接 */
   qq_url?: string;
+  /** 微信链接 */
   wechat_url?: string;
+  /** 抖音链接 */
   douyin_url?: string;
+  /** 首页背景图 URL */
   home_background_url?: string;
+  /** 其他动态配置项 */
   [key: string]: string | undefined;
 }
 
@@ -29,9 +44,13 @@ interface SiteConfig {
  * 用户信息接口
  */
 interface UserInfo {
+  /** 用户全名 */
   fullName: string;
+  /** 头像 URL */
   avatarUrl: string;
+  /** 电子邮箱 */
   email: string;
+  /** 个人介绍 */
   bio: string;
 }
 
@@ -39,40 +58,49 @@ interface UserInfo {
  * 全局状态管理接口
  */
 interface SiteState {
+  /** 站点配置数据 */
   config: SiteConfig;
+  /** 当前登录用户信息，未登录为 null */
   user: UserInfo | null;
+  /** 加载状态 */
   loading: boolean;
+  /** 是否已完成初始化 */
   isInitialized: boolean;
   /**
    * 从数据库获取最新配置
+   * @returns {Promise<void>}
    */
   fetchConfig: () => Promise<void>;
   /**
    * 获取当前登录用户信息
+   * @returns {Promise<void>}
    */
   fetchUser: () => Promise<void>;
   /**
    * 更新本地配置状态
-   * @param key 配置键
-   * @param value 配置值
+   * @param {string} key - 配置键
+   * @param {string} value - 配置值
+   * @returns {void}
    */
   updateConfig: (key: string, value: string) => void;
   /**
    * 更新本地用户信息
-   * @param info 用户信息
+   * @param {Partial<UserInfo>} info - 用户信息片段
+   * @returns {void}
    */
   updateUser: (info: Partial<UserInfo>) => void;
   /**
    * 初始化配置、用户信息和实时监听
+   * @returns {() => void} - 返回清理订阅的函数
    */
   initConfig: () => () => void;
 }
 
 /**
  * 设置站点配置的实时订阅
- * @param get Zustand get 方法
- * @param set Zustand set 方法
- * @returns Supabase 频道对象
+ * @param {() => SiteState} get - Zustand get 方法
+ * @param {(state: Partial<SiteState> | ((state: SiteState) => Partial<SiteState>)) => void} set - Zustand set 方法
+ * @returns {RealtimeChannel} - Supabase 频道对象
  */
 const setupConfigSubscription = (get: () => SiteState, set: (state: Partial<SiteState> | ((state: SiteState) => Partial<SiteState>)) => void) => {
   return supabase
@@ -103,9 +131,9 @@ const setupConfigSubscription = (get: () => SiteState, set: (state: Partial<Site
 
 /**
  * 设置用户认证状态的订阅
- * @param get Zustand get 方法
- * @param set Zustand set 方法
- * @returns 订阅对象包装
+ * @param {() => SiteState} get - Zustand get 方法
+ * @param {(state: Partial<SiteState> | ((state: SiteState) => Partial<SiteState>)) => void} set - Zustand set 方法
+ * @returns {Object} - 订阅对象包装
  */
 const setupAuthSubscription = (get: () => SiteState, set: (state: Partial<SiteState> | ((state: SiteState) => Partial<SiteState>)) => void) => {
   return supabase.auth.onAuthStateChange((event, session) => {
@@ -153,7 +181,7 @@ export const useSiteStore = create<SiteState>()(
             set({ config: configMap, loading: false });
           }
         } catch (error) {
-          console.error('Failed to fetch site config:', error);
+          console.error('获取站点配置失败:', error);
           set({ loading: false });
         }
       },
@@ -172,7 +200,7 @@ export const useSiteStore = create<SiteState>()(
             });
           }
         } catch (error) {
-          console.error('Failed to fetch user:', error);
+          console.error('获取用户信息失败:', error);
         }
       },
 
