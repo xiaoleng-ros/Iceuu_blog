@@ -7,18 +7,13 @@ import { useSiteStore } from '@/lib/store/useSiteStore';
 import IconCloud from './IconCloud';
 import { useState, useEffect } from 'react';
 
-interface SidebarProps {
-  // 目前站点配置通过 useSiteStore 统一管理，props 暂时保留空接口以备后用
-}
-
 /**
  * 侧边栏组件
  * 展示博主个人资料、社交媒体链接、运行统计以及 3D 标签云
  * 站点配置信息从 useSiteStore 全局状态中获取，确保跨页面同步
- * @param {SidebarProps} props - 组件属性
  * @returns {JSX.Element} - 返回侧边栏组件 JSX
  */
-export default function Sidebar(_props: SidebarProps) {
+export default function Sidebar() {
   // 从全局 Store 中获取站点配置
   const config = useSiteStore((state) => state.config);
   const [svgIcons, setSvgIcons] = useState<string[]>([]);
