@@ -56,6 +56,7 @@ export default function Hero({ backgroundImage: initialBg, centerText, postMetad
     /**
      * 执行打字机动画逻辑
      * 实现文字逐个显示，完成后停留并循环
+     * @returns {void}
      */
     const startTyping = () => {
       if (!isMounted) return;

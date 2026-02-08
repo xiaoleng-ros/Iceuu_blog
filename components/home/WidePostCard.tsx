@@ -10,13 +10,19 @@ interface WidePostCardProps {
 
 /**
  * 首页文章列表卡片组件 - 实现交错式横向布局
- * @param post 文章数据
- * @param index 索引，用于决定布局方向
+ * @param {WidePostCardProps} props - 组件属性
+ * @param {any} props.post - 文章数据
+ * @param {number} props.index - 索引，用于决定布局方向
+ * @returns {JSX.Element} - 返回文章卡片 JSX
  */
 export default function WidePostCard({ post, index }: WidePostCardProps) {
   const isEven = index % 2 === 0;
 
-  // 从文章正文中提取第一张图片的 URL
+  /**
+   * 从文章正文中提取第一张图片的 URL
+   * @param {string} content - 文章正文内容
+   * @returns {string | null} - 返回图片 URL 或 null
+   */
   const getFirstImageFromContent = (content: string) => {
     if (!content) return null;
     // 匹配 Markdown 图片格式 ![alt](url)

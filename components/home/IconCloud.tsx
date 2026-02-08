@@ -21,9 +21,11 @@ interface IconPosition {
 
 /**
  * 3D 旋转图标云组件
- * @param icons 图标文件名列表
  * 实现了基于黄金分割螺旋算法的球面分布，以及基于鼠标交互的 3D 旋转效果
  * 修复：使用 Ref 直接更新 DOM 样式，消除高频 setState 导致的 "Maximum update depth exceeded" 错误
+ * @param {IconCloudProps} props - 组件属性
+ * @param {string[]} props.icons - 图标文件名列表
+ * @returns {JSX.Element} - 返回图标云组件 JSX
  */
 export default function IconCloud({ icons }: IconCloudProps) {
   const containerRef = useRef<HTMLDivElement>(null);

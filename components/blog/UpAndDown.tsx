@@ -16,8 +16,8 @@ interface Props {
 
 /**
  * 从 Markdown 内容中提取第一张图片的 URL
- * @param content Markdown 内容
- * @returns 第一张图片的 URL 或 undefined
+ * @param {string} [content] - Markdown 内容
+ * @returns {string | undefined} - 返回第一张图片的 URL 或 undefined
  */
 const extractFirstImage = (content?: string): string | undefined => {
     if (!content) return undefined;
@@ -37,10 +37,21 @@ const extractFirstImage = (content?: string): string | undefined => {
 /**
  * 上一篇文章和下一篇文章导航组件
  * 提供博客文章详情页的快速跳转功能
+ * @param {Props} props - 组件属性
+ * @param {string} props.id - 当前文章 ID
+ * @param {Info | null} props.prev - 上一篇文章信息
+ * @param {Info | null} props.next - 下一篇文章信息
+ * @returns {JSX.Element} - 返回导航组件 JSX
  */
 const UpAndDown = ({ id, prev, next }: Props) => { 
     const baseBtnSty = 'group w-full border border-gray-200 transition-all duration-300 rounded-md overflow-hidden relative h-24 sm:h-28 flex flex-col items-center justify-center hover:shadow-md';
     
+    /**
+     * 渲染单个导航链接
+     * @param {Info | null} item - 文章信息
+     * @param {string} label - 按钮标签（上一篇/下一篇）
+     * @returns {JSX.Element} - 返回链接 JSX
+     */
     const renderLink = (item: Info | null, label: string) => {
         const firstImage = extractFirstImage(item?.content);
         const displayImage = item?.cover_image || firstImage;

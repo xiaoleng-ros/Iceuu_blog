@@ -15,7 +15,7 @@ interface SidebarProps {
  * 展示博主个人资料、社交媒体链接、运行统计以及 3D 标签云
  * 站点配置信息从 useSiteStore 全局状态中获取，确保跨页面同步
  * @param {SidebarProps} props - 组件属性
- * @returns {JSX.Element}
+ * @returns {JSX.Element} - 返回侧边栏组件 JSX
  */
 export default function Sidebar(_props: SidebarProps) {
   // 从全局 Store 中获取站点配置
@@ -24,14 +24,23 @@ export default function Sidebar(_props: SidebarProps) {
   
   // 自动获取图标列表
   useEffect(() => {
-    fetch('/api/icons')
-      .then(res => res.json())
-      .then(data => {
+    /**
+     * 从 API 获取所有 SVG 图标列表
+     * @returns {Promise<void>}
+     */
+    const fetchIcons = async () => {
+      try {
+        const res = await fetch('/api/icons');
+        const data = await res.json();
         if (Array.isArray(data)) {
           setSvgIcons(data);
         }
-      })
-      .catch(err => console.error('Failed to fetch icons:', err));
+      } catch (err) {
+        console.error('获取图标列表失败:', err);
+      }
+    };
+    
+    fetchIcons();
   }, []);
   
   // Calculate days running from config or fallback date

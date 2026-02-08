@@ -8,6 +8,7 @@ import { useAuthorStore } from '@/stores';
  * @param {Object} props - 组件参数
  * @param {string} props.title - 文章标题
  * @param {string} props.id - 文章 ID
+ * @returns {JSX.Element} - 返回版权信息 JSX
  */
 const Copyright = ({ title, id }: { title: string; id: string }) => {
   const author = useAuthorStore((state) => state.author);

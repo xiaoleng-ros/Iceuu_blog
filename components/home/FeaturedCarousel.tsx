@@ -2,6 +2,11 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { ChevronRight } from 'lucide-react';
 
+/**
+ * 首页精选文章轮播/大图展示组件
+ * 展示置顶或推荐的重点文章，增强首页视觉冲击力
+ * @returns {JSX.Element} - 返回轮播组件 JSX
+ */
 export default function FeaturedCarousel() {
   return (
     <div className="relative w-full h-[280px] md:h-[320px] rounded-2xl overflow-hidden shadow-lg group cursor-pointer mb-8">
