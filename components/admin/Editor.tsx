@@ -85,8 +85,8 @@ export default function Editor({ value, onChange, placeholder, articleId }: Edit
 
             const data = await res.json();
             uploadedUrls.push(data.data.url);
-          } catch (error) {
-            console.error(`上传图片失败 [文件: ${file.name}]:`, error);
+          } catch (_error) {
+            console.error(`上传图片失败 [文件: ${file.name}]:`, _error);
             alert(`图片 ${file.name} 上传失败`);
           }
         })
@@ -97,8 +97,8 @@ export default function Editor({ value, onChange, placeholder, articleId }: Edit
         callback(uploadedUrls);
       }
 
-    } catch (error) {
-      console.error('图片上传流程异常:', error);
+    } catch (_error) {
+      console.error('图片上传流程异常:', _error);
       alert('上传过程中发生错误');
     } finally {
       setIsUploading(false);

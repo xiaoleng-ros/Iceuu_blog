@@ -40,8 +40,8 @@ export function useAuthorStore<T>(selector: (state: AuthorState) => T): T {
         }
         
         if (data) setAuthorName(data.value);
-      } catch (error) {
-        console.error('获取作者信息失败:', error);
+      } catch (_error) {
+        console.error('获取作者信息失败:', _error);
         setAuthorName('Iceuu'); // 降级默认值
       }
     };

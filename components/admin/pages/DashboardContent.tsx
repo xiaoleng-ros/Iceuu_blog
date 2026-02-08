@@ -49,8 +49,8 @@ export function DashboardContent() {
           trashPosts: trashPosts.length,
           totalMedia: (mediaJson.data || []).length,
         });
-      } catch (error) {
-        console.error('获取仪表盘统计数据失败:', error);
+      } catch (_error) {
+        console.error('获取仪表盘统计数据失败:', _error);
       } finally {
         setLoading(false);
       }

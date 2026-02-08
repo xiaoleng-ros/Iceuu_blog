@@ -49,8 +49,8 @@ export function BlogEditContent() {
           } else {
             console.error(`加载文章数据失败 [ID: ${id}]:`, res.statusText);
           }
-        } catch (error) {
-          console.error(`获取文章数据异常 [ID: ${id}]:`, error);
+        } catch (_error) {
+          console.error(`获取文章数据异常 [ID: ${id}]:`, _error);
         } finally {
           setLoading(false);
         }

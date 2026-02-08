@@ -258,8 +258,8 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
         console.error('保存草稿失败:', json.error);
         showToast(`保存失败: ${json.error}`, 'error');
       }
-    } catch (error) {
-      console.error('保存草稿异常:', error);
+    } catch (_error) {
+      console.error('保存草稿异常:', _error);
       showToast('网络请求异常，请稍后重试', 'error');
     } finally {
       setLoading(false);
@@ -329,8 +329,8 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
         console.error('发布文章失败:', json.error);
         showToast(`发布失败: ${json.error}`, 'error');
       }
-    } catch (error) {
-      console.error('发布文章异常:', error);
+    } catch (_error) {
+      console.error('发布文章异常:', _error);
       showToast('网络请求异常，请稍后重试', 'error');
     } finally {
       setLoading(false);

@@ -95,8 +95,8 @@ export function validateAllEnvVars(): boolean {
     validateEnvVar('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_URL);
     validateEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY', SUPABASE_ANON_KEY);
     return true;
-  } catch (error) {
-    console.error('环境变量验证失败:', error);
+  } catch (_error) {
+    console.error('环境变量验证失败:', _error);
     return false;
   }
 }
@@ -111,8 +111,8 @@ export function validateGithubConfig(): boolean {
     validateOptionalEnvVar('GITHUB_OWNER', GITHUB_OWNER);
     validateOptionalEnvVar('GITHUB_REPO', GITHUB_REPO);
     return true;
-  } catch (error) {
-    console.error('GitHub 配置验证失败:', error);
+  } catch (_error) {
+    console.error('GitHub 配置验证失败:', _error);
     return false;
   }
 }

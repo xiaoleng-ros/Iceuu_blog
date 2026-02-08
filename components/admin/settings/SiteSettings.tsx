@@ -131,8 +131,8 @@ export default function SiteSettings() {
             }));
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
+      } catch (_error) {
+        console.error('Failed to fetch user:', _error);
       }
     };
     fetchUser();
@@ -162,8 +162,8 @@ export default function SiteSettings() {
             setProfileData(prev => ({ ...prev, site_start_date: site_start_date || '' }));
           }
         }
-      } catch (error) {
-        console.error('Fetch settings error:', error);
+      } catch (_error) {
+        console.error('Fetch settings error:', _error);
       } finally {
         setLoading(false);
       }
@@ -312,8 +312,8 @@ export default function SiteSettings() {
       } else {
         setToast({ message: '保存失败，请稍后重试', type: 'error' });
       }
-    } catch (error) {
-      console.error('Save error:', error);
+    } catch (_error) {
+      console.error('Save error:', _error);
       setToast({ message: '保存过程中发生错误', type: 'error' });
     } finally {
       setSaving(false);
@@ -375,8 +375,8 @@ export default function SiteSettings() {
       } else {
         setToast({ message: '上传失败: ' + json.error, type: 'error' });
       }
-    } catch (error) {
-      console.error('Upload error:', error);
+    } catch (_error) {
+      console.error('Upload error:', _error);
       setToast({ message: '上传出错', type: 'error' });
     } finally {
       setUploadingAvatar(false);
@@ -478,8 +478,8 @@ export default function SiteSettings() {
         body: JSON.stringify({ home_background_url: '' }),
       });
       setToast({ message: '首页背景已移除', type: 'success' });
-    } catch (error) {
-      console.error('Remove background error:', error);
+    } catch (_error) {
+      console.error('Remove background error:', _error);
     }
   };
 

@@ -4,6 +4,7 @@ import Hero from '@/components/home/Hero';
 import Sidebar from '@/components/home/Sidebar';
 import PostList from '@/components/home/PostList';
 import Pagination from '@/components/ui/Pagination';
+import { Blog } from '@/types/database';
 
 // Revalidate home page every 60 seconds
 export const revalidate = 60;
@@ -13,16 +14,16 @@ export const revalidate = 60;
  * 过滤掉草稿和已进入回收站的文章
  * @param {number} page - 当前页码，默认为 1
  * @param {number} pageSize - 每页显示数量，默认为 3
- * @returns {Promise<any[]>} - 返回文章列表数组
+ * @returns {Promise<Blog[]>} - 返回文章列表数组
  */
-async function getLatestPosts(page: number = 1, pageSize: number = 3) {
+async function getLatestPosts(page: number = 1, pageSize: number = 3): Promise<Blog[]> {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
   try {
     const { data, error } = await supabase
       .from('blogs')
-      .select('id, title, excerpt, category, created_at, content, cover_image')
+      .select('id, title, excerpt, category, created_at, content, cover_image, draft, tags')
       .eq('draft', false)
       .or('is_deleted.is.null,is_deleted.eq.false')
       .order('created_at', { ascending: false })
@@ -32,9 +33,9 @@ async function getLatestPosts(page: number = 1, pageSize: number = 3) {
       console.error('获取最新文章失败:', error.message);
       return [];
     }
-    return data || [];
-  } catch (error) {
-    console.error('获取最新文章异常:', error);
+    return (data as Blog[]) || [];
+  } catch (_error) {
+    console.error('获取最新文章异常:', _error);
     return [];
   }
 }
@@ -56,8 +57,8 @@ async function getSiteConfig() {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
-  } catch (error) {
-    console.error('获取站点配置异常:', error);
+  } catch (_error) {
+    console.error('获取站点配置异常:', _error);
     return {};
   }
 }
@@ -80,8 +81,8 @@ async function getTotalPosts() {
       return 0;
     }
     return count || 0;
-  } catch (error) {
-    console.error('获取文章总数异常:', error);
+  } catch (_error) {
+    console.error('获取文章总数异常:', _error);
     return 0;
   }
 }

@@ -94,8 +94,8 @@ async function getSiteConfig() {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
-  } catch (error) {
-    console.error('Error fetching site config:', error);
+  } catch (_error) {
+    console.error('Error fetching site config:', _error);
     return {};
   }
 }

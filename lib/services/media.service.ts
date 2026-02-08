@@ -171,8 +171,8 @@ export async function deleteMedia(id: string): Promise<{ success: boolean }> {
 
   try {
     await deleteFileFromGitHub(media.path, 'Delete media via Blog Admin');
-  } catch (error) {
-    console.error('从 GitHub 删除文件失败:', error);
+  } catch (_error) {
+    console.error('从 GitHub 删除文件失败:', _error);
   }
 
   const { error } = await supabase

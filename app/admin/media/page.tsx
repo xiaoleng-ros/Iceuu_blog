@@ -87,8 +87,8 @@ export default function MediaPage() {
       if (res.ok) {
         setMedia(json.data || []);
       }
-    } catch (error) {
-      console.error('Fetch media error:', error);
+    } catch (_error) {
+      console.error('Fetch media error:', _error);
       showToast('获取媒体库失败', 'error');
     } finally {
       setLoading(false);
@@ -132,8 +132,8 @@ export default function MediaPage() {
       } else {
         showToast('上传失败: ' + json.error, 'error');
       }
-    } catch (error) {
-      console.error('Upload error:', error);
+    } catch (_error) {
+      console.error('Upload error:', _error);
       showToast('上传出错', 'error');
     } finally {
       setUploading(false);
@@ -168,8 +168,8 @@ export default function MediaPage() {
         showToast('删除失败: ' + (json.error || '未知错误'), 'error');
         setDeletingId(null);
       }
-    } catch (error) {
-      console.error('Delete error:', error);
+    } catch (_error) {
+      console.error('Delete error:', _error);
       showToast('删除出错', 'error');
       setDeletingId(null);
     }

@@ -9,6 +9,7 @@ import PublicLayout from '@/components/layout/PublicLayout';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { Search as SearchIcon, Loader2, FileSearch } from 'lucide-react';
+import { Blog } from '@/types/database';
 
 /**
  * 全站搜索页面组件
@@ -17,7 +18,7 @@ import { Search as SearchIcon, Loader2, FileSearch } from 'lucide-react';
  */
 export default function SearchPage() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -37,14 +38,14 @@ export default function SearchPage() {
     try {
       const { data, error } = await supabase
         .from('blogs')
-        .select('id, title, excerpt, created_at, category')
+        .select('id, title, excerpt, created_at, category, content, draft, tags')
         .eq('draft', false)
         .or('is_deleted.is.null,is_deleted.eq.false')
         .ilike('title', `%${query}%`)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setResults(data || []);
+      setResults((data as Blog[]) || []);
     } catch (error: any) {
       console.error('全站搜索失败:', error.message || error);
     } finally {

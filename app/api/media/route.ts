@@ -106,7 +106,7 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: '请求解析失败' }, { status: 400 });
   }
 }

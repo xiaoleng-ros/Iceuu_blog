@@ -191,8 +191,8 @@ export default function BlogListPage() {
       const { data: tagData } = await supabase.from('tags').select('name');
       setCategories(catData?.map(c => c.name) || []);
       setTags(tagData?.map(t => t.name) || []);
-    } catch (error) {
-      console.error('Error fetching filters:', error);
+    } catch (_error) {
+      console.error('Error fetching filters:', _error);
       showToast('获取筛选条件失败', 'error');
     }
   }, [showToast]);
@@ -251,8 +251,8 @@ export default function BlogListPage() {
       } else {
         showToast(json.error || '获取文章列表失败', 'error');
       }
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
+    } catch (_error) {
+      console.error('Error fetching blogs:', _error);
       showToast('网络请求失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
@@ -370,8 +370,8 @@ export default function BlogListPage() {
       } else {
         showToast('移动失败', 'error');
       }
-    } catch (error) {
-      console.error('Delete error:', error);
+    } catch (_error) {
+      console.error('Delete error:', _error);
       showToast('操作出错', 'error');
     } finally {
       setBlogIdToDelete(null);

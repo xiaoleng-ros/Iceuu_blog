@@ -180,8 +180,8 @@ export const useSiteStore = create<SiteState>()(
             }, {});
             set({ config: configMap, loading: false });
           }
-        } catch (error) {
-          console.error('获取站点配置失败:', error);
+        } catch (_error) {
+          console.error('获取站点配置失败:', _error);
           set({ loading: false });
         }
       },
@@ -199,8 +199,8 @@ export const useSiteStore = create<SiteState>()(
               }
             });
           }
-        } catch (error) {
-          console.error('获取用户信息失败:', error);
+        } catch (_error) {
+          console.error('获取用户信息失败:', _error);
         }
       },
 

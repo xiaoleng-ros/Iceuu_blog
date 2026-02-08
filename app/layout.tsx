@@ -33,8 +33,8 @@ export async function generateMetadata(): Promise<Metadata> {
         ],
       },
     };
-  } catch (error) {
-    console.error('生成元数据失败:', error);
+  } catch (_error) {
+    console.error('生成元数据失败:', _error);
     // 构建阶段如果 Supabase 连接失败（如占位符 URL 或网络问题），返回默认元数据
     return {
       title: {

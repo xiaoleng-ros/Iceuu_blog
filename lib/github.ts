@@ -155,8 +155,8 @@ export async function uploadImageToGitHub(
     }
 
     return await response.json();
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  } catch (_error) {
+    const errorMessage = _error instanceof Error ? _error.message : 'Unknown error';
     console.error('GitHub Upload Error:', errorMessage);
     throw new Error(errorMessage || 'Failed to upload image to GitHub');
   }
@@ -231,8 +231,8 @@ export async function deleteFileFromGitHub(
       const errorData = (await deleteResponse.json()) as GitHubError;
       throw new Error(errorData.message || `GitHub API error (DELETE): ${deleteResponse.status}`);
     }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  } catch (_error) {
+    const errorMessage = _error instanceof Error ? _error.message : 'Unknown error';
     console.error('GitHub Delete Error:', errorMessage);
     throw new Error(errorMessage || 'Failed to delete file from GitHub');
   }

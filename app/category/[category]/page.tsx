@@ -4,6 +4,7 @@ import PublicLayout from '@/components/layout/PublicLayout';
 import Hero from '@/components/home/Hero';
 import PostList from '@/components/home/PostList';
 import Pagination from '@/components/ui/Pagination';
+import { Blog } from '@/types/database';
 
 // Revalidate every 60 seconds
 export const revalidate = 60;
@@ -14,21 +15,21 @@ export const revalidate = 60;
  * @param {string} category - 分类名称
  * @param {number} page - 当前页码
  * @param {number} pageSize - 每页条数
- * @returns {Promise<{posts: any[], count: number}>} - 返回文章列表和总数
+ * @returns {Promise<{posts: Blog[], count: number}>} - 返回文章列表和总数
  */
-async function getCategoryPosts(category: string, page: number = 1, pageSize: number = 5) {
+async function getCategoryPosts(category: string, page: number = 1, pageSize: number = 5): Promise<{posts: Blog[], count: number}> {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
   const { data, count } = await supabase
     .from('blogs')
-    .select('id, title, excerpt, cover_image, category, created_at, content', { count: 'exact' })
+    .select('id, title, excerpt, cover_image, category, created_at, content, draft, tags', { count: 'exact' })
     .eq('draft', false)
     .or('is_deleted.is.null,is_deleted.eq.false')
     .eq('category', category)
     .order('created_at', { ascending: false })
     .range(from, to);
-  return { posts: data || [], count: count || 0 };
+  return { posts: (data as Blog[]) || [], count: count || 0 };
 }
 
 /**
@@ -43,8 +44,8 @@ async function getSiteConfig() {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
-  } catch (error) {
-    console.error('获取站点配置失败:', error);
+  } catch (_error) {
+    console.error('获取站点配置失败:', _error);
     return {};
   }
 }

@@ -119,8 +119,8 @@ export default function DraftsPage() {
       } else {
         showToast(json.error || '获取草稿失败', 'error');
       }
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
+    } catch (_error) {
+      console.error('Error fetching blogs:', _error);
       showToast('网络请求失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
@@ -199,7 +199,7 @@ export default function DraftsPage() {
           } else {
             showToast('发布失败', 'error');
           }
-        } catch (error) {
+        } catch (_error) {
           showToast('操作出错', 'error');
         } finally {
           setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -239,7 +239,7 @@ export default function DraftsPage() {
           } else {
             showToast('移动失败', 'error');
           }
-        } catch (error) {
+        } catch (_error) {
           showToast('操作出错', 'error');
         } finally {
           setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -288,7 +288,7 @@ export default function DraftsPage() {
           } else {
             showToast('发布失败', 'error');
           }
-        } catch (error) {
+        } catch (_error) {
           showToast('批量操作出错', 'error');
         } finally {
           setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -335,7 +335,7 @@ export default function DraftsPage() {
           } else {
             showToast('删除失败', 'error');
           }
-        } catch (error) {
+        } catch (_error) {
           showToast('批量删除出错', 'error');
         } finally {
           setConfirmConfig(prev => ({ ...prev, isOpen: false }));

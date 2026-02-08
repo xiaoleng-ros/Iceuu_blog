@@ -154,8 +154,8 @@ export default function SystemSettings() {
             }
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch user or password:', error);
+      } catch (_error) {
+        console.error('Failed to fetch user or password:', _error);
         setToast({ message: '获取账户安全信息失败，请检查网络或数据库连接', type: 'error' });
       } finally {
         setLoading(false);
@@ -201,8 +201,8 @@ export default function SystemSettings() {
         const json = await res.json();
         setToast({ message: '保存失败: ' + json.error, type: 'error' });
       }
-    } catch (error) {
-      console.error('Save github config error:', error);
+    } catch (_error) {
+      console.error('Save github config error:', _error);
       setToast({ message: '保存出错', type: 'error' });
     } finally {
       setGithubSaving(false);
