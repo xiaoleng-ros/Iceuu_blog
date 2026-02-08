@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuthorStore } from '@/stores';
+import { useState, useEffect } from 'react';
 
 /**
  * 文章版权信息组件
@@ -12,7 +13,12 @@ import { useAuthorStore } from '@/stores';
  */
 const Copyright = ({ title, id }: { title: string; id: string }) => {
   const authorName = useAuthorStore((state) => state.authorName);
-  const currentUrl = typeof window !== 'undefined' ? `${window.location.origin}/blog/${id}` : '';
+  const [currentUrl, setCurrentUrl] = useState('');
+
+  useEffect(() => {
+    // 仅在客户端挂载后设置完整 URL，以避免 SSR 水合不一致
+    setCurrentUrl(`${window.location.origin}/blog/${id}`);
+  }, [id]);
 
   return (
     <div className="p-4 mt-12 border-l-[4px] border-[#00B42A] 
