@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/Button';
  * @param {Object} props.value - 当前选中的日期范围 { start: string, end: string }
  * @param {Function} props.onChange - 日期变化时的回调函数
  * @param {string} props.label - 显示的标签文本
- * @returns {JSX.Element}
+ * @returns {JSX.Element} - 返回日期范围选择器 JSX 结构
  */
 export const CustomDateRangePicker = ({
   value,

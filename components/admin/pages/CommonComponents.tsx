@@ -6,9 +6,11 @@ import { cn } from '@/lib/utils';
 
 /**
  * Toast 提示组件
- * @param {string} message - 提示消息
- * @param {'success' | 'error' | 'info' | 'warning'} type - 提示类型
- * @param {() => void} onClose - 关闭回调
+ * @param {Object} props - 组件属性
+ * @param {string} props.message - 提示消息
+ * @param {'success' | 'error' | 'info' | 'warning'} props.type - 提示类型
+ * @param {() => void} props.onClose - 关闭回调
+ * @returns {JSX.Element}
  */
 export const Toast = ({ 
   message, 
@@ -51,9 +53,11 @@ export const Toast = ({
 
 /**
  * 空状态组件
- * @param {string} message - 显示的消息
- * @param {string} className - 自定义样式类
- * @param {boolean} small - 是否使用紧凑模式
+ * @param {Object} props - 组件属性
+ * @param {string} props.message - 显示的消息
+ * @param {string} [props.className] - 自定义样式类
+ * @param {boolean} [props.small] - 是否使用紧凑模式
+ * @returns {JSX.Element}
  */
 export const EmptyState = ({ 
   message = "暂无数据", 

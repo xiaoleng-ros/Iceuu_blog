@@ -50,7 +50,7 @@ export function DashboardContent() {
           totalMedia: (mediaJson.data || []).length,
         });
       } catch (error) {
-        console.error('Stats error:', error);
+        console.error('获取仪表盘统计数据失败:', error);
       } finally {
         setLoading(false);
       }

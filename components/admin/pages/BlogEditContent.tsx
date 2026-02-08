@@ -47,10 +47,10 @@ export function BlogEditContent() {
             const json = await res.json();
             setData(json.data);
           } else {
-            console.error('Failed to load blog');
+            console.error(`加载文章数据失败 [ID: ${id}]:`, res.statusText);
           }
         } catch (error) {
-          console.error('Error fetching blog:', error);
+          console.error(`获取文章数据异常 [ID: ${id}]:`, error);
         } finally {
           setLoading(false);
         }

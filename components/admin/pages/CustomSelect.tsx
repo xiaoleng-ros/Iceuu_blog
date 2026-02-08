@@ -6,9 +6,11 @@ import { cn } from '@/lib/utils';
 
 /**
  * 空状态组件
- * @param {string} message - 显示的消息
- * @param {string} className - 自定义样式类
- * @param {boolean} small - 是否使用紧凑模式
+ * @param {Object} props - 组件属性
+ * @param {string} props.message - 显示的消息
+ * @param {string} [props.className] - 自定义样式类
+ * @param {boolean} [props.small] - 是否使用紧凑模式
+ * @returns {JSX.Element}
  */
 const EmptyState = ({ message = "暂无数据", className, small = false }: { message?: string, className?: string, small?: boolean }) => (
   <div className={cn("flex flex-col items-center justify-center py-12 px-4 text-center", small && "py-4", className)}>
@@ -32,7 +34,7 @@ const EmptyState = ({ message = "暂无数据", className, small = false }: { me
  * @param {string[]} props.options - 可选项列表
  * @param {string} props.placeholder - 未选中时的占位文本
  * @param {string} props.label - 显示的标签文本
- * @returns {JSX.Element}
+ * @returns {JSX.Element} - 返回选择器 JSX 结构
  */
 export const CustomSelect = ({ 
   value, 
