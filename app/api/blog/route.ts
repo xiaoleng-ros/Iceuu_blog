@@ -6,8 +6,8 @@ export const runtime = 'edge';
 /**
  * 处理获取博客列表的 GET 请求
  * 支持分页、分类筛选、标签筛选及状态筛选（已发布、草稿、回收站）
- * @param request - Request 对象，包含查询参数
- * @returns Promise<NextResponse> - 返回博客列表及分页元数据
+ * @param {Request} request - Request 对象，包含查询参数 (page, limit, category, tag, status)
+ * @returns {Promise<NextResponse>} - 返回博客列表及分页元数据
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
   
+  // 如果有 token 则创建带身份的客户端，否则使用匿名客户端
   const requestSupabase = token ? createClientWithToken(token) : supabase;
 
   let query = requestSupabase
@@ -30,10 +31,8 @@ export async function GET(request: Request) {
   if (category) query = query.eq('category', category);
   if (tag) query = query.contains('tags', [tag]);
 
-  // Handle status filtering
+  // 处理回收站（已逻辑删除）的文章
   if (status === 'deleted') {
-    // If the database doesn't have is_deleted column yet, we return empty for deleted status
-    // to avoid 500 errors. Once the user runs the SQL, we can revert this.
     try {
       const { data, error, count } = await requestSupabase
         .from('blogs')
@@ -41,6 +40,7 @@ export async function GET(request: Request) {
         .eq('is_deleted', true)
         .range((page - 1) * limit, page * limit - 1);
       
+      // 兼容性检查：如果数据库中还没有 is_deleted 列
       if (error && error.message.includes('is_deleted')) {
         return NextResponse.json({ data: [], meta: { total: 0, page, limit, totalPages: 0 } });
       }
@@ -57,11 +57,11 @@ export async function GET(request: Request) {
         },
       });
     } catch (e) {
+      console.error('获取已删除文章异常:', e);
       return NextResponse.json({ data: [], meta: { total: 0, page, limit, totalPages: 0 } });
     }
   } else {
-    // For all other statuses, we should filter out deleted articles
-    // We use a try-catch or check to avoid errors if the column doesn't exist yet
+    // 排除已逻辑删除的文章
     query = query.or('is_deleted.is.null,is_deleted.eq.false');
     
     if (status === 'draft') {
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     } else if (status === 'published') {
       query = query.eq('draft', false);
     } else {
-      // Default: show all non-deleted if admin, or only published if public
+      // 默认逻辑：未登录用户只能看到已发布的，登录管理员可以看到全部（非删除）
       if (!token) {
         query = query.eq('draft', false);
       }
@@ -80,9 +80,8 @@ export async function GET(request: Request) {
   
   let { data, error, count } = await query;
 
-  // If we get an error about is_deleted, it might be because the column doesn't exist yet
+  // 兼容性降级：如果 is_deleted 列不存在，重试不带该过滤条件的查询
   if (error && error.message.includes('is_deleted')) {
-    // Retry without the is_deleted filter
     let retryQuery = requestSupabase
       .from('blogs')
       .select('id, title, excerpt, cover_image, category, tags, created_at, draft', { count: 'exact' })
@@ -107,6 +106,7 @@ export async function GET(request: Request) {
   }
 
   if (error) {
+    console.error('获取文章列表失败:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
