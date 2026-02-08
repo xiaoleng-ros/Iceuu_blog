@@ -24,6 +24,14 @@ export async function generateMetadata(): Promise<Metadata> {
         default: `${siteName} - 个人博客`,
       },
       description: "基于 Next.js + Supabase 构建的个人博客系统",
+      icons: {
+        icon: [
+          {
+            url: "/favicon.ico?v=1",
+            href: "/favicon.ico?v=1",
+          },
+        ],
+      },
     };
   } catch (error) {
     // 构建阶段如果 Supabase 连接失败（如占位符 URL 或网络问题），返回默认元数据
@@ -33,6 +41,14 @@ export async function generateMetadata(): Promise<Metadata> {
         default: `我的博客 - 个人博客`,
       },
       description: "基于 Next.js + Supabase 构建的个人博客系统",
+      icons: {
+        icon: [
+          {
+            url: "/favicon.ico?v=1",
+            href: "/favicon.ico?v=1",
+          },
+        ],
+      },
     };
   }
 }
