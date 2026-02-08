@@ -18,14 +18,16 @@ interface ConfirmDialogProps {
  * 确认对话框组件
  * 用于替代浏览器原生的 confirm()，提供更统一和美观的交互体验
  * 
- * @param isOpen - 是否显示对话框
- * @param onClose - 关闭对话框的回调
- * @param onConfirm - 确认操作的回调
- * @param title - 对话框标题
- * @param description - 对话框描述内容
- * @param confirmText - 确认按钮文字，默认为"确定"
- * @param cancelText - 取消按钮文字，默认为"取消"
- * @param variant - 样式变体，支持 'danger' | 'warning' | 'info'
+ * @param {ConfirmDialogProps} props - 组件属性
+ * @param {boolean} props.isOpen - 是否显示对话框
+ * @param {() => void} props.onClose - 关闭对话框的回调
+ * @param {() => void} props.onConfirm - 确认操作的回调
+ * @param {string} props.title - 对话框标题
+ * @param {string} props.description - 对话框描述内容
+ * @param {string} [props.confirmText] - 确认按钮文字，默认为"确定"
+ * @param {string} [props.cancelText] - 取消按钮文字，默认为"取消"
+ * @param {'danger' | 'warning' | 'info'} [props.variant] - 样式变体，支持 'danger' | 'warning' | 'info'
+ * @returns {JSX.Element | null} - 返回对话框组件 JSX 或 null
  */
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,

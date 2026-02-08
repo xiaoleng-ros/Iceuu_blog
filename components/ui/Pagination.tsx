@@ -13,13 +13,19 @@ interface PaginationProps {
 
 /**
  * 平滑滚动到页面顶部
- * @param onComplete 滚动完成后的回调
+ * @param {() => void} [onComplete] - 滚动完成后的回调
+ * @returns {void}
  */
 const scrollToTop = (onComplete?: () => void) => {
   const duration = 300;
   const start = window.pageYOffset;
   const startTime = performance.now();
 
+  /**
+   * 动画循环函数
+   * @param {number} currentTime - 当前时间戳
+   * @returns {void}
+   */
   const animate = (currentTime: number) => {
     const elapsedTime = currentTime - startTime;
     const progress = Math.min(elapsedTime / duration, 1);
@@ -41,9 +47,9 @@ const scrollToTop = (onComplete?: () => void) => {
 
 /**
  * 计算要显示的页码列表
- * @param currentPage 当前页码
- * @param totalPages 总页数
- * @returns 包含数字和省略号的数组
+ * @param {number} currentPage - 当前页码
+ * @param {number} totalPages - 总页数
+ * @returns {(number | string)[]} - 包含数字和省略号的数组
  */
 const getPageNumbers = (currentPage: number, totalPages: number) => {
   const pages = [];
@@ -73,9 +79,11 @@ const getPageNumbers = (currentPage: number, totalPages: number) => {
 
 /**
  * 分页组件 - 支持平滑滚动回顶交互
- * @param currentPage 当前页码
- * @param totalPages 总页数
- * @param baseUrl 基础 URL
+ * @param {PaginationProps} props - 组件属性
+ * @param {number} props.currentPage - 当前页码
+ * @param {number} props.totalPages - 总页数
+ * @param {string} props.baseUrl - 基础 URL
+ * @returns {JSX.Element | null} - 返回分页组件 JSX 或 null
  */
 export default function Pagination({ currentPage, totalPages, baseUrl }: PaginationProps) {
   const router = useRouter();
@@ -83,6 +91,8 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
 
   /**
    * 处理页码点击跳转
+   * @param {number} page - 目标页码
+   * @returns {void}
    */
   const handlePageChange = useCallback((page: number) => {
     if (page === currentPage || isScrollingRef.current) return;

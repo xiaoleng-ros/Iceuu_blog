@@ -3,6 +3,7 @@ import Image from 'next/image';
 /**
  * 网站页脚组件
  * 仅显示小动物装饰图片，移除所有文本内容
+ * @returns {JSX.Element} - 返回页脚组件 JSX
  */
 export default function Footer() {
   return (

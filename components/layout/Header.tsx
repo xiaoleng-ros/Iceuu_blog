@@ -30,6 +30,9 @@ const navItems: NavItem[] = [
 /**
  * 网站顶部导航栏组件
  * 使用全局 Store 获取站点名称，确保页面跳转后立即同步更新
+ * @param {HeaderProps} props - 组件属性
+ * @param {boolean} [props.transparent] - 是否透明显示
+ * @returns {JSX.Element} - 返回顶部导航栏 JSX
  */
 export default function Header({ transparent = false }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);

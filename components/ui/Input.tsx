@@ -4,6 +4,12 @@ import { cn } from "@/lib/utils"
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
 
+/**
+ * 通用输入框组件
+ * @param {InputProps} props - 输入框属性
+ * @param {React.Ref<HTMLInputElement>} ref - 转发的引用
+ * @returns {JSX.Element} - 返回输入框组件 JSX
+ */
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
     return (

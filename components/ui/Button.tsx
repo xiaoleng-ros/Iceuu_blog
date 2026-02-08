@@ -7,6 +7,14 @@ export interface ButtonProps
   size?: 'default' | 'sm' | 'lg' | 'icon'
 }
 
+/**
+ * 通用按钮组件
+ * @param {ButtonProps} props - 按钮属性
+ * @param {string} [props.variant] - 样式变体: 'default' | 'outline' | 'ghost' | 'danger'
+ * @param {string} [props.size] - 尺寸变体: 'default' | 'sm' | 'lg' | 'icon'
+ * @param {React.Ref<HTMLButtonElement>} ref - 转发的引用
+ * @returns {JSX.Element} - 返回按钮组件 JSX
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'default', size = 'default', ...props }, ref) => {
     return (
