@@ -22,7 +22,7 @@ interface SiteConfig {
   wechat_url?: string;
   douyin_url?: string;
   home_background_url?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 /**
@@ -56,7 +56,7 @@ interface SiteState {
    * @param key 配置键
    * @param value 配置值
    */
-  updateConfig: (key: string, value: any) => void;
+  updateConfig: (key: string, value: string) => void;
   /**
    * 更新本地用户信息
    * @param info 用户信息
@@ -67,6 +67,63 @@ interface SiteState {
    */
   initConfig: () => () => void;
 }
+
+/**
+ * 设置站点配置的实时订阅
+ * @param get Zustand get 方法
+ * @param set Zustand set 方法
+ * @returns Supabase 频道对象
+ */
+const setupConfigSubscription = (get: () => SiteState, set: (state: Partial<SiteState> | ((state: SiteState) => Partial<SiteState>)) => void) => {
+  return supabase
+    .channel('site_config_global')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'site_config'
+      },
+      (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+
+        if (eventType === 'INSERT' || eventType === 'UPDATE') {
+          get().updateConfig(newRecord.key, newRecord.value);
+        } else if (eventType === 'DELETE') {
+          set((state) => {
+            const next = { ...state.config };
+            delete next[oldRecord.key];
+            return { config: next };
+          });
+        }
+      }
+    )
+    .subscribe();
+};
+
+/**
+ * 设置用户认证状态的订阅
+ * @param get Zustand get 方法
+ * @param set Zustand set 方法
+ * @returns 订阅对象包装
+ */
+const setupAuthSubscription = (get: () => SiteState, set: (state: Partial<SiteState> | ((state: SiteState) => Partial<SiteState>)) => void) => {
+  return supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+      const user = session?.user;
+      if (user) {
+        get().updateUser({
+          fullName: user.user_metadata?.full_name || '管理员',
+          avatarUrl: user.user_metadata?.avatar_url || '',
+          email: user.email || '',
+          bio: user.user_metadata?.bio || '',
+        });
+      }
+    } else if (event === 'SIGNED_OUT') {
+      set({ user: null });
+    }
+  });
+};
 
 /**
  * 全局站点配置 Store
@@ -89,7 +146,7 @@ export const useSiteStore = create<SiteState>()(
           if (error) throw error;
           
           if (data) {
-            const configMap = data.reduce((acc: any, curr) => {
+            const configMap = data.reduce<Record<string, string>>((acc, curr) => {
               acc[curr.key] = curr.value;
               return acc;
             }, {});
@@ -134,57 +191,15 @@ export const useSiteStore = create<SiteState>()(
       initConfig: () => {
         const { isInitialized, fetchConfig, fetchUser } = get();
         
-        // 标记为已初始化，避免重复执行逻辑
         if (!isInitialized) {
           set({ isInitialized: true });
           fetchConfig();
           fetchUser();
         }
 
-        // 订阅 Supabase 实时变更 (site_config)
-        const configChannel = supabase
-          .channel('site_config_global')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'site_config'
-            },
-            (payload) => {
-              const { eventType, new: newRecord, old: oldRecord } = payload;
+        const configChannel = setupConfigSubscription(get, set);
+        const { data: { subscription } } = setupAuthSubscription(get, set);
 
-              if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                get().updateConfig(newRecord.key, newRecord.value);
-              } else if (eventType === 'DELETE') {
-                set((state) => {
-                  const next = { ...state.config };
-                  delete next[oldRecord.key];
-                  return { config: next };
-                });
-              }
-            }
-          )
-          .subscribe();
-
-        // 订阅 Supabase Auth 变更
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-            const user = session?.user;
-            if (user) {
-              get().updateUser({
-                fullName: user.user_metadata?.full_name || '管理员',
-                avatarUrl: user.user_metadata?.avatar_url || '',
-                email: user.email || '',
-                bio: user.user_metadata?.bio || '',
-              });
-            }
-          } else if (event === 'SIGNED_OUT') {
-            set({ user: null });
-          }
-        });
-
-        // 返回清理函数
         return () => {
           supabase.removeChannel(configChannel);
           subscription.unsubscribe();

@@ -5,13 +5,13 @@
 
 import { supabase } from '@/lib/supabase';
 import { Blog, PaginationParams, QueryFilters } from '@/types/database';
-import { BLOG_CATEGORIES, PAGINATION, BLOG_STATUS } from '@/lib/constants';
+import { BLOG_CATEGORIES, PAGINATION, BLOG_STATUS, BlogCategory } from '@/lib/constants';
 
 /**
  * 获取博客列表
  * 根据分页、分类、标签和状态筛选文章
  * @param {PaginationParams & QueryFilters} [params={}] - 分页和过滤参数
- * @returns {Promise<{ data: any[], total: number, page: number, limit: number, totalPages: number }>} - 返回博客列表及分页信息
+ * @returns {Promise<{ data: Blog[], total: number, page: number, limit: number, totalPages: number }>} - 返回博客列表及分页信息
  */
 export async function getBlogs(params: PaginationParams & QueryFilters = {}) {
   const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT, category, tag, status } = params;
@@ -51,7 +51,7 @@ export async function getBlogs(params: PaginationParams & QueryFilters = {}) {
   }
 
   return {
-    data: data || [],
+    data: (data || []) as Blog[],
     total: count || 0,
     page,
     limit,
@@ -62,7 +62,7 @@ export async function getBlogs(params: PaginationParams & QueryFilters = {}) {
 /**
  * 根据 ID 获取博客
  * @param {string} id - 博客 ID
- * @returns {Promise<any>} - 返回博客详情
+ * @returns {Promise<Blog>} - 返回博客详情
  */
 export async function getBlogById(id: string) {
   const { data, error } = await supabase
@@ -75,14 +75,14 @@ export async function getBlogById(id: string) {
     throw new Error(`获取博客失败: ${error.message}`);
   }
 
-  return data;
+  return data as Blog;
 }
 
 /**
  * 创建博客
  * 验证数据有效性并插入新文章
  * @param {Partial<Blog>} blog - 博客数据
- * @returns {Promise<any>} - 返回创建成功的博客数据
+ * @returns {Promise<Blog>} - 返回创建成功的博客数据
  */
 export async function createBlog(blog: Partial<Blog>) {
   const { title, content, category } = blog;
@@ -91,7 +91,7 @@ export async function createBlog(blog: Partial<Blog>) {
     throw new Error('标题和内容不能为空');
   }
 
-  if (category && !BLOG_CATEGORIES.includes(category as any)) {
+  if (category && !BLOG_CATEGORIES.includes(category as BlogCategory)) {
     throw new Error(`无效的分类，必须是: ${BLOG_CATEGORIES.join(', ')}`);
   }
 
@@ -101,7 +101,7 @@ export async function createBlog(blog: Partial<Blog>) {
   allowedFields.forEach(field => {
     const value = blog[field as keyof Blog];
     if (value !== undefined) {
-      (insertData as any)[field] = value;
+      (insertData as Record<string, unknown>)[field] = value;
     }
   });
 
@@ -115,7 +115,7 @@ export async function createBlog(blog: Partial<Blog>) {
     throw new Error(`创建博客失败: ${error.message}`);
   }
 
-  return data;
+  return data as Blog;
 }
 
 /**
@@ -123,7 +123,7 @@ export async function createBlog(blog: Partial<Blog>) {
  * 支持批量更新多个博客的字段
  * @param {string[]} ids - 博客 ID 数组
  * @param {Partial<Blog>} updates - 更新的数据内容
- * @returns {Promise<any[]>} - 返回更新后的博客数据列表
+ * @returns {Promise<Blog[]>} - 返回更新后的博客数据列表
  */
 export async function updateBlogs(ids: string[], updates: Partial<Blog>) {
   const { data, error } = await supabase
@@ -139,7 +139,7 @@ export async function updateBlogs(ids: string[], updates: Partial<Blog>) {
     throw new Error(`更新博客失败: ${error.message}`);
   }
 
-  return data;
+  return (data || []) as Blog[];
 }
 
 /**

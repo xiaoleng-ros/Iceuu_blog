@@ -18,7 +18,7 @@ export async function uploadMedia(
   contextId?: string,
   userId?: string
 ): Promise<Media> {
-  if (!FILE_UPLOAD_LIMITS.ALLOWED_IMAGE_TYPES.includes(file.type as any)) {
+  if (!(FILE_UPLOAD_LIMITS.ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
     throw new Error(`不支持的文件类型: ${file.type}`);
   }
 
