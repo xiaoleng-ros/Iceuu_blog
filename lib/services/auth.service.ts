@@ -8,9 +8,10 @@ import { User, UserRole } from '@/types/database';
 
 /**
  * 用户登录
- * @param email 邮箱
- * @param password 密码
- * @returns 用户和会话信息
+ * @param {string} email - 邮箱
+ * @param {string} password - 密码
+ * @returns {Promise<{ user: any, session: any }>} - 返回用户和会话信息
+ * @throws {Error} - 登录失败时抛出错误
  */
 export async function loginUser(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -19,7 +20,7 @@ export async function loginUser(email: string, password: string) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(`登录失败: ${error.message}`);
   }
 
   // 更新最后登录时间
@@ -38,7 +39,8 @@ export async function loginUser(email: string, password: string) {
 
 /**
  * 用户登出
- * @returns 登出结果
+ * @returns {Promise<{ success: boolean }>} - 登出结果
+ * @throws {Error} - 登出失败时抛出错误
  */
 export async function logoutUser() {
   const { error } = await supabase.auth.signOut();
@@ -52,13 +54,12 @@ export async function logoutUser() {
 
 /**
  * 获取当前用户（从 public.users 表）
- * @returns 当前用户信息
+ * @returns {Promise<User | null>} - 当前用户信息
  */
 export async function getCurrentUser(): Promise<User | null> {
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authUser) {
-    console.error('获取用户失败:', authError);
     return null;
   }
 
@@ -79,7 +80,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
 /**
  * 获取当前用户角色
- * @returns 用户角色
+ * @returns {Promise<UserRole | null>} - 用户角色
  */
 export async function getCurrentUserRole(): Promise<UserRole | null> {
   const user = await getCurrentUser();
@@ -88,7 +89,7 @@ export async function getCurrentUserRole(): Promise<UserRole | null> {
 
 /**
  * 检查当前用户是否为管理员
- * @returns 是否为管理员
+ * @returns {Promise<boolean>} - 是否为管理员
  */
 export async function isAdmin(): Promise<boolean> {
   const role = await getCurrentUserRole();
@@ -97,13 +98,11 @@ export async function isAdmin(): Promise<boolean> {
 
 /**
  * 更新用户信息
- * @param updates 更新数据
- * @returns 更新后的用户信息
+ * @param {Partial<User>} updates - 更新数据
+ * @returns {Promise<User>} - 更新后的用户信息
+ * @throws {Error} - 更新失败时抛出错误
  */
-export async function updateUser(updates: {
-  full_name?: string;
-  avatar_url?: string;
-}) {
+export async function updateCurrentUser(updates: Partial<User>) {
   const { data: { user }, error } = await supabase.auth.updateUser({
     data: {
       full_name: updates.full_name,

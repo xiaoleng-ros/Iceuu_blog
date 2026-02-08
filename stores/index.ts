@@ -4,44 +4,50 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
+ * 作者信息状态接口
+ */
+interface AuthorState {
+  authorName: string;
+}
+
+/**
  * 作者信息状态管理 Store
  * 模拟 Zustand 接口，提供作者名称的获取和实时更新
- * @param selector 选择器函数
- * @returns 选中的状态数据
+ * @template T
+ * @param {(state: AuthorState) => T} selector - 选择器函数，用于从状态中提取特定部分
+ * @returns {T} - 返回选中的状态数据
  */
-export function useAuthorStore(selector: (state: any) => any) {
-  const [author, setAuthor] = useState({ name: '管理员' });
+export function useAuthorStore<T>(selector: (state: AuthorState) => T): T {
+  const [authorName, setAuthorName] = useState('加载中...');
 
   useEffect(() => {
-    // 1. 初始获取作者名称 (site_name)
+    // 初始获取
     const fetchAuthor = async () => {
-      const { data } = await supabase
-        .from('site_config')
-        .select('value')
-        .eq('key', 'site_name')
-        .single();
-      
-      if (data?.value) {
-        setAuthor({ name: data.value });
+      try {
+        const { data, error } = await supabase
+          .from('authors')
+          .select('name')
+          .single();
+        
+        if (error) throw error;
+        if (data) setAuthorName(data.name);
+      } catch (error) {
+        console.error('Failed to fetch author:', error);
+        setAuthorName('Iceuu'); // 降级默认值
       }
     };
 
     fetchAuthor();
 
-    // 2. 监听 site_config 表的变化，实时更新作者名称
+    // 订阅实时更新
     const channel = supabase
-      .channel('author_name_changes')
+      .channel('author_changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'site_config',
-          filter: 'key=eq.site_name'
-        },
+        { event: '*', schema: 'public', table: 'authors' },
         (payload: any) => {
-          if (payload.new && payload.new.value) {
-            setAuthor({ name: payload.new.value });
+          if (payload.new && payload.new.name) {
+            setAuthorName(payload.new.name);
           }
         }
       )
@@ -52,9 +58,5 @@ export function useAuthorStore(selector: (state: any) => any) {
     };
   }, []);
 
-  const state = {
-    author,
-  };
-
-  return selector(state);
+  return selector({ authorName });
 }

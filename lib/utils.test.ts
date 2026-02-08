@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { cn } from '@/lib/utils';
 
+/**
+ * utils.ts 工具函数单元测试
+ */
 describe('cn 函数', () => {
   it('应该正确合并类名', () => {
     expect(cn('foo', 'bar')).toBe('foo bar');

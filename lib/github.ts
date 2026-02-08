@@ -12,6 +12,8 @@ export interface GitHubConfig {
 
 /**
  * 获取 GitHub API URL
+ * @param {GitHubConfig} [config] - GitHub 配置信息
+ * @returns {string} - 返回完整的 GitHub API 路径
  */
 function getGitHubApiUrl(config?: GitHubConfig): string {
   if (config) {
@@ -21,7 +23,9 @@ function getGitHubApiUrl(config?: GitHubConfig): string {
 }
 
 /**
- * 验证配置是否完整
+ * 验证 GitHub 配置是否完整
+ * @param {GitHubConfig} [config] - 待验证的 GitHub 配置
+ * @returns {boolean} - 配置完整返回 true，否则返回 false
  */
 function isConfigValid(config?: GitHubConfig): boolean {
   if (config) {
@@ -31,7 +35,10 @@ function isConfigValid(config?: GitHubConfig): boolean {
 }
 
 /**
- * 获取默认配置或传入配置
+ * 获取默认配置或解析传入配置
+ * @param {GitHubConfig} [config] - 可选的 GitHub 配置
+ * @returns {GitHubConfig} - 返回有效的 GitHub 配置对象
+ * @throws {Error} - 当配置不完整时抛出错误
  */
 function resolveConfig(config?: GitHubConfig): GitHubConfig {
   if (config && isConfigValid(config)) {

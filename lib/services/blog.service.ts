@@ -177,6 +177,52 @@ export async function deleteBlogs(ids: string[], permanent = false) {
 }
 
 /**
+ * 获取所有分类及其文章数量
+ * @returns {Promise<Array<{ name: string, count: number }>>} - 返回分类列表
+ * @throws {Error} - 当获取失败时抛出错误
+ */
+export async function getCategories() {
+  const { data, error } = await supabase
+    .from('blogs')
+    .select('category');
+
+  if (error) throw new Error(`获取分类列表失败: ${error.message}`);
+
+  const categories = (data || []).reduce((acc: Record<string, number>, curr) => {
+    if (curr.category) {
+      acc[curr.category] = (acc[curr.category] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  return Object.entries(categories).map(([name, count]) => ({ name, count }));
+}
+
+/**
+ * 获取所有标签及其文章数量
+ * @returns {Promise<Array<{ name: string, count: number }>>} - 返回标签列表
+ * @throws {Error} - 当获取失败时抛出错误
+ */
+export async function getTags() {
+  const { data, error } = await supabase
+    .from('blogs')
+    .select('tags');
+
+  if (error) throw new Error(`获取标签列表失败: ${error.message}`);
+
+  const tags = (data || []).reduce((acc: Record<string, number>, curr) => {
+    if (curr.tags && Array.isArray(curr.tags)) {
+      curr.tags.forEach(tag => {
+        acc[tag] = (acc[tag] || 0) + 1;
+      });
+    }
+    return acc;
+  }, {});
+
+  return Object.entries(tags).map(([name, count]) => ({ name, count }));
+}
+
+/**
  * 获取博客统计
  * 统计总数、已发布、草稿以及已删除的数量
  * @returns {Promise<{ total: number, published: number, draft: number, deleted: number }>} - 返回各项统计结果
