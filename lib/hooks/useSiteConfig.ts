@@ -4,12 +4,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
+ * 站点配置信息接口
+ */
+interface SiteConfig {
+  [key: string]: string | undefined;
+}
+
+/**
  * 实时获取和监听网站配置的 Hook
  * @param initialConfig 初始配置数据（通常来自服务端获取）
  * @returns 实时更新的配置数据
  */
-export function useSiteConfig(initialConfig: any) {
-  const [config, setConfig] = useState(initialConfig);
+export function useSiteConfig(initialConfig: SiteConfig) {
+  const [config, setConfig] = useState<SiteConfig>(initialConfig);
 
   useEffect(() => {
     // 只有当 initialConfig 真正发生变化且与当前 state 不同时才更新
@@ -33,16 +40,15 @@ export function useSiteConfig(initialConfig: any) {
           table: 'site_config'
         },
         (payload) => {
-          console.log('Site config changed:', payload);
           const { eventType, new: newRecord, old: oldRecord } = payload;
 
           if (eventType === 'INSERT' || eventType === 'UPDATE') {
-            setConfig((prev: any) => ({
+            setConfig((prev) => ({
               ...prev,
               [newRecord.key]: newRecord.value
             }));
           } else if (eventType === 'DELETE') {
-            setConfig((prev: any) => {
+            setConfig((prev) => {
               const next = { ...prev };
               delete next[oldRecord.key];
               return next;
@@ -55,7 +61,7 @@ export function useSiteConfig(initialConfig: any) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [initialConfig]);
+  }, [initialConfig, config]);
 
   return config;
 }
