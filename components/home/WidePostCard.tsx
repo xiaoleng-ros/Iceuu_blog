@@ -11,7 +11,7 @@ import { Blog } from '@/types/database';
  * @param {string} props.image - 背景图片 URL
  * @returns {JSX.Element | null}
  */
-function CardAtmosphere({ image }: { image?: string }) {
+function CardAtmosphere({ image }: { image?: string | null }) {
   if (!image) return null;
   return (
     <div
@@ -32,7 +32,7 @@ function CardAtmosphere({ image }: { image?: string }) {
  * @param {boolean} props.isEven - 是否为偶数索引，决定布局方向
  * @returns {JSX.Element}
  */
-function CardImage({ image, isEven }: { image?: string; isEven: boolean }) {
+function CardImage({ image, isEven }: { image?: string | null; isEven: boolean }) {
   return (
     <>
       {/* 桌面端图片展示 */}
