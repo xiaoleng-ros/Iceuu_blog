@@ -11,7 +11,7 @@ import { useAuthorStore } from '@/stores';
  * @returns {JSX.Element} - 返回版权信息 JSX
  */
 const Copyright = ({ title, id }: { title: string; id: string }) => {
-  const author = useAuthorStore((state) => state.author);
+  const authorName = useAuthorStore((state) => state.authorName);
   const currentUrl = typeof window !== 'undefined' ? `${window.location.origin}/blog/${id}` : '';
 
   return (
@@ -22,13 +22,13 @@ const Copyright = ({ title, id }: { title: string; id: string }) => {
         文章标题：{title}
       </p>
       <p className="leading-tight">
-        文章作者：{author?.name}
+        文章作者：{authorName}
       </p>
       <p className="leading-tight">
         文章链接：<span className="text-blue-600 break-all">{currentUrl || `/blog/${id}`}</span>
       </p>
       <p className="leading-tight">
-        版权声明：此文章版权归 {author?.name} 所有，如有转载，请注明出处!
+        版权声明：此文章版权归 {authorName} 所有，如有转载，请注明出处!
       </p>
     </div>
   );

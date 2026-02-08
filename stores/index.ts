@@ -25,14 +25,23 @@ export function useAuthorStore<T>(selector: (state: AuthorState) => T): T {
     const fetchAuthor = async () => {
       try {
         const { data, error } = await supabase
-          .from('authors')
-          .select('name')
+          .from('site_config')
+          .select('value')
+          .eq('key', 'site_name')
           .single();
         
-        if (error) throw error;
-        if (data) setAuthorName(data.name);
+        if (error) {
+          // 如果没找到配置，不抛出错误，使用默认值
+          if (error.code === 'PGRST116') {
+            setAuthorName('Iceuu');
+            return;
+          }
+          throw error;
+        }
+        
+        if (data) setAuthorName(data.value);
       } catch (error) {
-        console.error('Failed to fetch author:', error);
+        console.error('获取作者信息失败:', error);
         setAuthorName('Iceuu'); // 降级默认值
       }
     };
@@ -44,10 +53,15 @@ export function useAuthorStore<T>(selector: (state: AuthorState) => T): T {
       .channel('author_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'authors' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'site_config',
+          filter: 'key=eq.site_name'
+        },
         (payload: any) => {
-          if (payload.new && payload.new.name) {
-            setAuthorName(payload.new.name);
+          if (payload.new && payload.new.value) {
+            setAuthorName(payload.new.value);
           }
         }
       )
