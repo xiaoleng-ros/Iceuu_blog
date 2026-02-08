@@ -4,6 +4,13 @@ import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
+/**
+ * 身份验证守卫组件
+ * 负责检查用户的登录状态，并根据状态进行路由重定向
+ * @param {Object} props - 组件属性
+ * @param {React.ReactNode} props.children - 子组件内容
+ * @returns {JSX.Element} - 返回受保护的页面内容或加载状态
+ */
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();

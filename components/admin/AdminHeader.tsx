@@ -10,6 +10,7 @@ import { useSiteStore } from '@/lib/store/useSiteStore';
 /**
  * 后台管理页面顶部导航栏组件
  * 使用全局 Store 获取用户信息，确保在个人资料更新后立即同步显示
+ * @returns {JSX.Element} - 返回顶部导航栏 JSX 结构
  */
 export default function AdminHeader() {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +23,10 @@ export default function AdminHeader() {
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
+    /**
+     * 处理外部点击事件，用于关闭下拉菜单
+     * @param {MouseEvent} event - 鼠标事件
+     */
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -33,6 +38,7 @@ export default function AdminHeader() {
 
   /**
    * 处理退出登录
+   * @returns {Promise<void>}
    */
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -42,6 +48,7 @@ export default function AdminHeader() {
 
   /**
    * 跳转到系统设置
+   * @returns {void}
    */
   const handleGoToSettings = () => {
     router.push('/admin/system');

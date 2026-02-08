@@ -139,6 +139,8 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
 
   /**
    * 处理图片上传
+   * @param {React.ChangeEvent<HTMLInputElement>} e - 文件变更事件
+   * @returns {Promise<void>}
    */
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -182,7 +184,7 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
       setFormData(prev => ({ ...prev, cover_image: data.data.url }));
       showToast('图片上传成功', 'success');
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('上传封面图失败:', error);
       showToast(error.message || '图片上传失败', 'error');
     } finally {
       setUploading(false);
@@ -196,7 +198,8 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
   /**
    * 显示提示信息
    * @param {string} message - 提示消息内容
-   * @param {string} type - 提示类型 (success, error, info, warning)
+   * @param {'success' | 'error' | 'info' | 'warning'} type - 提示类型
+   * @returns {void}
    */
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
@@ -204,6 +207,7 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
 
   /**
    * 处理草稿保存
+   * @returns {Promise<void>}
    */
   const handleSaveDraft = async () => {
     // 1. 表单验证逻辑
@@ -248,54 +252,46 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
       if (res.ok) {
         clearStorage();
         showToast('草稿保存成功', 'success');
-        setTimeout(() => {
-          router.push('/admin/blogs/drafts');
-          router.refresh();
-        }, 1500);
       } else {
         const json = await res.json();
+        console.error('保存草稿失败:', json.error);
         showToast(`保存失败: ${json.error}`, 'error');
       }
     } catch (error) {
-      console.error('保存草稿错误:', error);
-      showToast('发生错误，请重试', 'error');
+      console.error('保存草稿异常:', error);
+      showToast('网络请求异常，请稍后重试', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * 处理文章提交发布
+   * 处理文章发布
    * @param {React.FormEvent} e - 表单提交事件
+   * @returns {Promise<void>}
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // 1. 表单验证逻辑
     const titleTrimmed = formData.title.trim();
-    const contentPlain = formData.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-
-    let hasError = false;
-    const newErrors: { title?: boolean; content?: boolean } = {};
-
     if (titleTrimmed.length === 0) {
-      newErrors.title = true;
-      hasError = true;
-    }
-    if (contentPlain.length === 0) {
-      newErrors.content = true;
-      hasError = true;
-    }
-
-    if (hasError) {
-      setErrors(newErrors);
-      showToast('发布文章前，标题和正文都不能为空', 'warning');
+      setErrors(prev => ({ ...prev, title: true }));
+      showToast('文章标题不能为空', 'warning');
       return;
     }
 
+    // 去除 HTML 标签和空白字符
+    const contentPlain = formData.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    if (contentPlain.length === 0) {
+      setErrors(prev => ({ ...prev, content: true }));
+      showToast('文章内容不能为空', 'warning');
+      return;
+    }
+
+    // 清除之前的错误状态
     setErrors({});
     setLoading(true);
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -305,7 +301,7 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
 
       const payload = {
         ...formData,
-        draft: false, // 点击“保存发布”或“保存修改”时，确保文章处于发布状态
+        draft: false,
       };
 
       const url = isEditing ? `/api/blog/${initialData.id}` : '/api/blog';
@@ -320,22 +316,21 @@ export default function BlogForm({ initialData, isEditing = false }: BlogFormPro
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json();
-
       if (res.ok) {
         clearStorage();
-        showToast(isEditing ? '修改保存成功' : '文章发布成功', 'success');
+        showToast(isEditing ? '文章更新成功' : '文章发布成功', 'success');
         setTimeout(() => {
-          // 发布成功后统一跳转到文章列表页
           router.push('/admin/blogs');
           router.refresh();
         }, 1500);
       } else {
-        showToast(`操作失败: ${json.error}`, 'error');
+        const json = await res.json();
+        console.error('发布文章失败:', json.error);
+        showToast(`发布失败: ${json.error}`, 'error');
       }
     } catch (error) {
-      console.error('提交错误:', error);
-      showToast('发生错误，请重试', 'error');
+      console.error('发布文章异常:', error);
+      showToast('网络请求异常，请稍后重试', 'error');
     } finally {
       setLoading(false);
     }

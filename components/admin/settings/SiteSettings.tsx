@@ -13,8 +13,11 @@ import { useSiteStore } from '@/lib/store/useSiteStore';
 /**
  * Toast 提示组件
  * 显示临时的操作结果提示
- * @param props - 包含 message, type, onClose 的属性对象
- * @returns JSX.Element
+ * @param {Object} props - 组件属性
+ * @param {string} props.message - 提示消息内容
+ * @param {'success' | 'error' | 'info' | 'warning'} [props.type] - 提示类型
+ * @param {() => void} props.onClose - 关闭回调函数
+ * @returns {JSX.Element} - 返回提示组件 JSX
  */
 const Toast = ({ 
   message, 
@@ -58,7 +61,7 @@ const Toast = ({
 /**
  * 站点设置组件
  * 管理博客的全局配置、SEO 信息、社交链接和首页背景
- * @returns JSX.Element
+ * @returns {JSX.Element} - 返回站点设置页面 JSX
  */
 export default function SiteSettings() {
   const storeUser = useSiteStore((state) => state.user);

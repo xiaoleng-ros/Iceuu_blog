@@ -21,9 +21,25 @@ interface EditorProps {
   articleId?: string;
 }
 
+/**
+ * Markdown 编辑器组件
+ * 封装了 md-editor-rt，支持图片上传、预览和行号显示
+ * @param {EditorProps} props - 编辑器属性
+ * @param {string} props.value - Markdown 内容
+ * @param {(value: string) => void} props.onChange - 内容变更回调
+ * @param {string} [props.placeholder] - 占位提示文本
+ * @param {string} [props.articleId] - 文章 ID，用于图片上传上下文
+ * @returns {JSX.Element} - 返回编辑器 JSX 结构
+ */
 export default function Editor({ value, onChange, placeholder, articleId }: EditorProps) {
   const [isUploading, setIsUploading] = useState(false);
 
+  /**
+   * 处理图片上传逻辑
+   * @param {File[]} files - 待上传的文件列表
+   * @param {(urls: string[]) => void} callback - 上传成功后的 URL 回调
+   * @returns {Promise<void>}
+   */
   const onUploadImg = async (files: File[], callback: (urls: string[]) => void) => {
     if (files.length === 0) return;
 
@@ -70,7 +86,7 @@ export default function Editor({ value, onChange, placeholder, articleId }: Edit
             const data = await res.json();
             uploadedUrls.push(data.data.url);
           } catch (error) {
-            console.error(`Upload error for ${file.name}:`, error);
+            console.error(`上传图片失败 [文件: ${file.name}]:`, error);
             alert(`图片 ${file.name} 上传失败`);
           }
         })
@@ -82,7 +98,7 @@ export default function Editor({ value, onChange, placeholder, articleId }: Edit
       }
 
     } catch (error) {
-      console.error('Upload process error:', error);
+      console.error('图片上传流程异常:', error);
       alert('上传过程中发生错误');
     } finally {
       setIsUploading(false);

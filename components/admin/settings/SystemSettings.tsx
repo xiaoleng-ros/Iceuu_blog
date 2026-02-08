@@ -13,8 +13,11 @@ import { useSiteStore } from '@/lib/store/useSiteStore';
 /**
  * Toast 提示组件
  * 显示临时的操作结果提示
- * @param props - 包含 message, type, onClose 的属性对象
- * @returns JSX.Element
+ * @param {Object} props - 组件属性
+ * @param {string} props.message - 提示消息内容
+ * @param {'success' | 'error' | 'info' | 'warning'} [props.type] - 提示类型
+ * @param {() => void} props.onClose - 关闭回调函数
+ * @returns {JSX.Element} - 返回提示组件 JSX
  */
 const Toast = ({ 
   message, 
@@ -58,7 +61,7 @@ const Toast = ({
 /**
  * 系统设置组件
  * 管理个人资料、账号安全、密码修改及系统偏好
- * @returns JSX.Element
+ * @returns {JSX.Element} - 返回系统设置页面 JSX
  */
 export default function SystemSettings() {
   const [loading, setLoading] = useState(false);
