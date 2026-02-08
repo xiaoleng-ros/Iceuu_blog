@@ -28,6 +28,129 @@ const navItems: NavItem[] = [
 ];
 
 /**
+ * 网站 Logo 组件
+ * @param {Object} props - 组件属性
+ * @param {string} props.siteName - 站点名称
+ * @param {boolean} props.isTransparent - 是否透明
+ * @returns {JSX.Element}
+ */
+function Logo({ siteName, isTransparent }: { siteName: string; isTransparent: boolean }) {
+  return (
+    <Link href="/" className="flex items-center group">
+      <span className={cn(
+        "text-lg font-bold tracking-tight transition-all duration-300",
+        isTransparent ? "text-white drop-shadow-md" : "text-gray-800"
+      )}>
+        {siteName}
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * 桌面端导航组件
+ * @param {Object} props - 组件属性
+ * @param {boolean} props.isTransparent - 是否透明
+ * @returns {JSX.Element}
+ */
+function DesktopNav({ isTransparent }: { isTransparent: boolean }) {
+  return (
+    <nav className="hidden md:flex items-center gap-8">
+      {navItems.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className={cn(
+            "text-[15px] font-bold transition-all duration-300 flex items-center gap-1.5 group/item",
+            isTransparent
+              ? "text-white/90 hover:text-white drop-shadow-sm"
+              : "text-gray-600 hover:text-blue-600"
+          )}
+          {...item.external ? { target: "_blank", rel: "noopener noreferrer" } : {}}
+        >
+          {item.label}
+          {item.hasDropdown && (
+            <ChevronDown className={cn(
+              "w-3 h-3 transition-transform duration-300 group-hover/item:rotate-180",
+              isTransparent ? "text-white/70" : "text-gray-400"
+            )} />
+          )}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * 右侧功能按钮组件
+ * @param {Object} props - 组件属性
+ * @param {boolean} props.isTransparent - 是否透明
+ * @returns {JSX.Element}
+ */
+function ActionButtons({ isTransparent }: { isTransparent: boolean }) {
+  return (
+    <div className="hidden md:flex items-center gap-1">
+      <Button variant="ghost" size="icon" className={cn(
+        "h-9 w-9 transition-all duration-300",
+        isTransparent ? "text-white hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"
+      )}>
+        <Search className="h-[18px] w-[18px]" />
+      </Button>
+      <Link href="/admin">
+        <Button
+          variant="ghost"
+          size="icon"
+          title="管理后台"
+          className={cn(
+            "h-9 w-9 transition-all duration-300",
+            isTransparent ? "text-white hover:bg-white/10" : "text-gray-500 hover:bg-gray-100"
+          )}
+        >
+          <Globe className="h-[18px] w-[18px]" />
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+/**
+ * 移动端菜单组件
+ * @param {Object} props - 组件属性
+ * @param {boolean} props.isOpen - 菜单是否打开
+ * @param {Function} props.onClose - 关闭菜单的回调
+ * @returns {JSX.Element | null}
+ */
+function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="md:hidden border-t p-4 space-y-3 bg-white/95 backdrop-blur-md shadow-xl absolute w-full left-0 top-[56px] animate-in slide-in-from-top-2 duration-300">
+      {navItems.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className="flex items-center justify-between py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3 transition-all"
+          onClick={onClose}
+          {...item.external ? { target: "_blank", rel: "noopener noreferrer" } : {}}
+        >
+          <span>{item.label}</span>
+          {item.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </Link>
+      ))}
+      <div className="h-px bg-gray-100 my-2" />
+      <Link href="/search" className="flex items-center gap-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3" onClick={onClose}>
+        <Search className="h-4 w-4" />
+        <span>搜索</span>
+      </Link>
+      <Link href="/admin" className="flex items-center gap-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3" onClick={onClose}>
+        <Globe className="h-4 w-4" />
+        <span>管理后台</span>
+      </Link>
+    </div>
+  );
+}
+
+/**
  * 网站顶部导航栏组件
  * 使用全局 Store 获取站点名称，确保页面跳转后立即同步更新
  * @param {HeaderProps} props - 组件属性
@@ -64,60 +187,12 @@ export default function Header({ transparent = false }: HeaderProps) {
     >
       <div className="container mx-auto px-4 md:px-6 flex h-14 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center group">
-            <span className={cn(
-              "text-lg font-bold tracking-tight transition-all duration-300",
-              isTransparent ? "text-white drop-shadow-md" : "text-gray-800"
-            )}>{siteName}</span>
-          </Link>
-          
-          <nav className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
-              <Link 
-                key={item.label} 
-                href={item.href} 
-                className={cn(
-                  "text-[15px] font-bold transition-all duration-300 flex items-center gap-1.5 group/item",
-                  isTransparent 
-                    ? "text-white/90 hover:text-white drop-shadow-sm" 
-                    : "text-gray-600 hover:text-blue-600"
-                )}
-                {...item.external ? { target: "_blank", rel: "noopener noreferrer" } : {}}
-              >
-                {item.label}
-                {item.hasDropdown && (
-                  <ChevronDown className={cn(
-                    "w-3 h-3 transition-transform duration-300 group-hover/item:rotate-180",
-                    isTransparent ? "text-white/70" : "text-gray-400"
-                  )} />
-                )}
-              </Link>
-            ))}
-          </nav>
+          <Logo siteName={siteName} isTransparent={isTransparent} />
+          <DesktopNav isTransparent={isTransparent} />
         </div>
 
         <div className="flex items-center gap-1">
-          <div className="hidden md:flex items-center gap-1">
-            <Button variant="ghost" size="icon" className={cn(
-              "h-9 w-9 transition-all duration-300",
-              isTransparent ? "text-white hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"
-            )}>
-              <Search className="h-[18px] w-[18px]" />
-            </Button>
-            <Link href="/admin">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                title="管理后台" 
-                className={cn(
-                  "h-9 w-9 transition-all duration-300", 
-                  isTransparent ? "text-white hover:bg-white/10" : "text-gray-500 hover:bg-gray-100"
-                )}
-              >
-                <Globe className="h-[18px] w-[18px]" />
-              </Button>
-            </Link>
-          </div>
+          <ActionButtons isTransparent={isTransparent} />
           <button 
             className={cn("md:hidden p-2 transition-colors", isTransparent ? "text-white" : "text-gray-600")}
             onClick={() => setIsOpen(!isOpen)}
@@ -127,32 +202,8 @@ export default function Header({ transparent = false }: HeaderProps) {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden border-t p-4 space-y-3 bg-white/95 backdrop-blur-md shadow-xl absolute w-full left-0 top-[56px] animate-in slide-in-from-top-2 duration-300">
-          {navItems.map((item) => (
-            <Link 
-              key={item.label}
-              href={item.href} 
-              className="flex items-center justify-between py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3 transition-all" 
-              onClick={() => setIsOpen(false)}
-              {...item.external ? { target: "_blank", rel: "noopener noreferrer" } : {}}
-            >
-              <span>{item.label}</span>
-              {item.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400" />}
-            </Link>
-          ))}
-          <div className="h-px bg-gray-100 my-2" />
-          <Link href="/search" className="flex items-center gap-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3" onClick={() => setIsOpen(false)}>
-            <Search className="h-4 w-4" />
-            <span>搜索</span>
-          </Link>
-          <Link href="/admin" className="flex items-center gap-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3" onClick={() => setIsOpen(false)}>
-            <Globe className="h-4 w-4" />
-            <span>管理后台</span>
-          </Link>
-        </div>
-      )}
+      <MobileMenu isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </header>
   );
 }
+
