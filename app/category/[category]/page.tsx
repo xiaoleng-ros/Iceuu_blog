@@ -8,12 +8,15 @@ import Pagination from '@/components/ui/Pagination';
 // Revalidate every 60 seconds
 export const revalidate = 60;
 
+/**
+ * 根据分类获取文章列表
+ * 过滤掉草稿和已删除文章并支持分页
+ * @param {string} category - 分类名称
+ * @param {number} page - 当前页码
+ * @param {number} pageSize - 每页条数
+ * @returns {Promise<{posts: any[], count: number}>} - 返回文章列表和总数
+ */
 async function getCategoryPosts(category: string, page: number = 1, pageSize: number = 5) {
-  /**
-   * 根据分类获取文章列表
-   * 过滤掉草稿和已删除文章
-   * 添加分页支持
-   */
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
@@ -28,10 +31,11 @@ async function getCategoryPosts(category: string, page: number = 1, pageSize: nu
   return { posts: data || [], count: count || 0 };
 }
 
+/**
+ * 从数据库获取全站配置信息
+ * @returns {Promise<Record<string, any>>} - 返回键值对形式的配置对象
+ */
 async function getSiteConfig() {
-  /**
-   * 获取站点配置
-   */
   try {
     const { data } = await supabase.from('site_config').select('*');
     if (!data) return {};
@@ -40,11 +44,16 @@ async function getSiteConfig() {
       return acc;
     }, {});
   } catch (error) {
-    console.error('Error fetching site config:', error);
+    console.error('获取站点配置失败:', error);
     return {};
   }
 }
 
+/**
+ * 生成分类页面的元数据
+ * @param {Object} props - 包含 params 的属性对象
+ * @returns {Promise<Metadata>} - 返回 Next.js Metadata 对象
+ */
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const { category } = await params;
   const decodedCategory = decodeURIComponent(category);
@@ -53,6 +62,12 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   };
 }
 
+/**
+ * 分类详情页面组件
+ * 展示指定分类下的文章列表及分页
+ * @param {Object} props - 页面组件属性
+ * @returns {JSX.Element} - 返回分类页面内容
+ */
 export default async function CategoryPage({ 
   params,
   searchParams

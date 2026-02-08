@@ -23,8 +23,9 @@ export default function SearchPage() {
 
   /**
    * 处理搜索表单提交
-   * @param e - React 表单事件
-   * @returns Promise<void>
+   * 调用 Supabase 进行标题模糊搜索，过滤掉草稿和逻辑删除的文章
+   * @param {React.FormEvent} e - React 表单提交事件
+   * @returns {Promise<void>}
    */
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +45,8 @@ export default function SearchPage() {
         
       if (error) throw error;
       setResults(data || []);
-    } catch (error) {
-      console.error('Search error:', error);
+    } catch (error: any) {
+      console.error('全站搜索失败:', error.message || error);
     } finally {
       setLoading(false);
     }

@@ -124,42 +124,42 @@ export async function GET(request: Request) {
 /**
  * 处理创建博客的 POST 请求
  * 需要管理员权限，包含基本字段校验和分类校验
- * @param request - Request 对象，包含博客内容 Body
- * @returns Promise<NextResponse> - 返回创建成功的博客数据或错误信息
+ * @param {Request} request - Request 对象，包含博客内容 Body
+ * @returns {Promise<NextResponse>} - 返回创建成功的博客数据或错误信息
  */
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
 
   if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '未授权访问' }, { status: 401 });
   }
 
   const requestSupabase = createClientWithToken(token);
   
-  // Verify token
+  // 验证用户身份
   const { data: { user }, error: authError } = await requestSupabase.auth.getUser();
   if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '用户信息验证失败' }, { status: 401 });
   }
 
   try {
     const body = await request.json();
     
-    // Basic validation
+    // 基础字段验证
     if (!body.title || !body.content) {
-      return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
+      return NextResponse.json({ error: '标题和内容是必填项' }, { status: 400 });
     }
 
-    // Category validation
+    // 分类合法性验证
     const ALLOWED_CATEGORIES = ['生活边角料', '情绪随笔', '干货分享', '成长复盘'];
     if (body.category && !ALLOWED_CATEGORIES.includes(body.category)) {
       return NextResponse.json({ 
-        error: `Invalid category. Must be one of: ${ALLOWED_CATEGORIES.join(', ')}` 
+        error: `无效的分类。必须是以下之一: ${ALLOWED_CATEGORIES.join(', ')}` 
       }, { status: 400 });
     }
 
-    // Filter allowed fields to avoid errors with missing columns like 'slug'
+    // 过滤允许的字段，避免因数据库缺失列（如 slug）导致报错
     const allowedFields = [
       'title', 'content', 'excerpt', 'cover_image', 
       'category', 'tags', 'draft', 'images'
@@ -179,42 +179,44 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      console.error('创建博客失败:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ data });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internal Error' }, { status: 500 });
+    console.error('创建博客异常:', e);
+    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
   }
 }
 
 /**
  * 处理批量更新博客的 PATCH 请求
  * 用于批量修改状态（如发布、设为草稿等）
- * @param request - Request 对象，包含 ids 和 updates
- * @returns Promise<NextResponse> - 返回操作成功状态或错误信息
+ * @param {Request} request - Request 对象，包含 ids 和 updates
+ * @returns {Promise<NextResponse>} - 返回操作成功状态或错误信息
  */
 export async function PATCH(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
 
   if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '未授权访问' }, { status: 401 });
   }
 
   const requestSupabase = createClientWithToken(token);
   
-  // Verify token
+  // 验证用户身份
   const { data: { user }, error: authError } = await requestSupabase.auth.getUser();
   if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '用户信息验证失败' }, { status: 401 });
   }
 
   try {
     const { ids, updates } = await request.json();
     
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: 'IDs are required' }, { status: 400 });
+      return NextResponse.json({ error: '必须提供文章 ID 列表' }, { status: 400 });
     }
 
     const { error } = await requestSupabase
@@ -223,6 +225,7 @@ export async function PATCH(request: Request) {
       .in('id', ids);
 
     if (error) {
+      console.error('批量更新博客失败:', error.message);
       if (error.message.includes('is_deleted')) {
         return NextResponse.json({ 
           error: '数据库缺少 is_deleted 列，操作失败。请先运行 supabase_schema.sql 中的更新语句。' 
@@ -233,15 +236,16 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internal Error' }, { status: 500 });
+    console.error('批量更新博客异常:', e);
+    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
   }
 }
 
 /**
  * 处理批量删除博客的 DELETE 请求
  * 支持移入回收站（软删除）和永久删除
- * @param request - Request 对象，URL 包含 permanent 参数，Body 包含 ids
- * @returns Promise<NextResponse> - 返回操作成功状态或错误信息
+ * @param {Request} request - Request 对象，URL 包含 permanent 参数，Body 包含 ids
+ * @returns {Promise<NextResponse>} - 返回操作成功状态或错误信息
  */
 export async function DELETE(request: Request) {
   const authHeader = request.headers.get('Authorization');
@@ -250,50 +254,51 @@ export async function DELETE(request: Request) {
   const permanent = searchParams.get('permanent') === 'true';
 
   if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '未授权访问' }, { status: 401 });
   }
 
   const requestSupabase = createClientWithToken(token);
   
-  // Verify token
+  // 验证用户身份
   const { data: { user }, error: authError } = await requestSupabase.auth.getUser();
   if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '用户信息验证失败' }, { status: 401 });
   }
 
   try {
     const { ids } = await request.json();
-    
+
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: 'IDs are required' }, { status: 400 });
+      return NextResponse.json({ error: '必须提供文章 ID 列表' }, { status: 400 });
     }
 
-    let query = requestSupabase.from('blogs');
-    
     if (permanent) {
-      const { error } = await query.delete().in('id', ids);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      // 永久删除
+      const { error } = await requestSupabase
+        .from('blogs')
+        .delete()
+        .in('id', ids);
+
+      if (error) {
+        console.error('永久删除文章失败:', error.message);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     } else {
-      // Check if is_deleted column exists by trying a simple update
-      const { error: updateError } = await query
+      // 软删除（移入回收站）
+      const { error } = await requestSupabase
+        .from('blogs')
         .update({ is_deleted: true, deleted_at: new Date().toISOString() })
         .in('id', ids);
-      
-      if (updateError) {
-        if (updateError.message.includes('is_deleted')) {
-          // Fallback: If column doesn't exist, we might have to do a permanent delete 
-          // or return an error explaining the missing column.
-          // For safety, let's return a specific error message.
-          return NextResponse.json({ 
-            error: '数据库缺少 is_deleted 列，无法移入回收站。请先运行 supabase_schema.sql 中的更新语句。' 
-          }, { status: 400 });
-        }
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+      if (error) {
+        console.error('移动文章到回收站失败:', error.message);
+        return NextResponse.json({ error: error.message }, { status: 500 });
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internal Error' }, { status: 500 });
+    console.error('批量删除文章异常:', e);
+    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
   }
 }
