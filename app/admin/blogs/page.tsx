@@ -102,8 +102,8 @@ export default function BlogListPage() {
         const { key, direction } = config;
         if (!direction) continue;
 
-        let valA: any = a[key];
-        let valB: any = b[key];
+        let valA: string | number = a[key] as string | number;
+        let valB: string | number = b[key] as string | number;
 
         // 数字类型处理
         if (key === 'views' || key === 'comments_count') {
@@ -185,7 +185,7 @@ export default function BlogListPage() {
    * 异步获取系统中的所有分类和标签
    * @returns Promise<void>
    */
-  const fetchFilters = async () => {
+  const fetchFilters = useCallback(async () => {
     try {
       const { data: catData } = await supabase.from('categories').select('name');
       const { data: tagData } = await supabase.from('tags').select('name');
@@ -195,7 +195,7 @@ export default function BlogListPage() {
       console.error('Error fetching filters:', error);
       showToast('获取筛选条件失败', 'error');
     }
-  };
+  }, [showToast]);
 
   /**
    * 异步获取博客文章列表
@@ -262,7 +262,7 @@ export default function BlogListPage() {
   useEffect(() => {
     fetchFilters();
     fetchBlogs(true);
-  }, []);
+  }, [fetchFilters, fetchBlogs]);
 
   /**
    * 执行筛选操作（包含防抖逻辑）

@@ -127,19 +127,22 @@ export default function DraftsPage() {
     }
   }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast]);
 
+  /**
+   * 异步获取筛选所需的分类和标签
+   */
+  const fetchFilters = useCallback(async () => {
+    const [catRes, tagRes] = await Promise.all([
+      supabase.from('categories').select('name'),
+      supabase.from('tags').select('name')
+    ]);
+    setCategories(catRes.data?.map(c => c.name) || []);
+    setTags(tagRes.data?.map(t => t.name) || []);
+  }, []);
+
   useEffect(() => {
-    /**
-     * 异步获取筛选所需的分类和标签
-     */
-    const fetchFilters = async () => {
-      const { data: catData } = await supabase.from('categories').select('name');
-      const { data: tagData } = await supabase.from('tags').select('name');
-      setCategories(catData?.map(c => c.name) || []);
-      setTags(tagData?.map(t => t.name) || []);
-    };
     fetchFilters();
     fetchBlogs(true);
-  }, [fetchBlogs]);
+  }, [fetchFilters, fetchBlogs]);
 
   /**
    * 处理筛选搜索逻辑（带防抖）
