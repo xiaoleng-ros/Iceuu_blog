@@ -12,6 +12,66 @@ interface PaginationProps {
 }
 
 /**
+ * 平滑滚动到页面顶部
+ * @param onComplete 滚动完成后的回调
+ */
+const scrollToTop = (onComplete?: () => void) => {
+  const duration = 300;
+  const start = window.pageYOffset;
+  const startTime = performance.now();
+
+  const animate = (currentTime: number) => {
+    const elapsedTime = currentTime - startTime;
+    const progress = Math.min(elapsedTime / duration, 1);
+    
+    // 使用 easeOutQuad 缓动函数
+    const easeProgress = progress * (2 - progress);
+    
+    window.scrollTo(0, start * (1 - easeProgress));
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else if (onComplete) {
+      onComplete();
+    }
+  };
+
+  requestAnimationFrame(animate);
+};
+
+/**
+ * 计算要显示的页码列表
+ * @param currentPage 当前页码
+ * @param totalPages 总页数
+ * @returns 包含数字和省略号的数组
+ */
+const getPageNumbers = (currentPage: number, totalPages: number) => {
+  const pages = [];
+  const maxVisible = 5;
+
+  if (totalPages <= maxVisible) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i++) pages.push(i);
+      pages.push('...');
+      pages.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+      pages.push('...');
+      pages.push(totalPages);
+    }
+  }
+  return pages;
+};
+
+/**
  * 分页组件 - 支持平滑滚动回顶交互
  * @param currentPage 当前页码
  * @param totalPages 总页数
@@ -22,81 +82,25 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
   const isScrollingRef = useRef(false);
 
   /**
-   * 平滑滚动到页面顶部
-   * 持续时间约 300ms
-   */
-  const scrollToTop = useCallback(() => {
-    const duration = 300;
-    const start = window.pageYOffset;
-    const startTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      const elapsedTime = currentTime - startTime;
-      const progress = Math.min(elapsedTime / duration, 1);
-      
-      // 使用 easeOutQuad 缓动函数
-      const easeProgress = progress * (2 - progress);
-      
-      window.scrollTo(0, start * (1 - easeProgress));
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        isScrollingRef.current = false;
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, []);
-
-  /**
    * 处理页码点击跳转
-   * 包含防抖逻辑与滚动逻辑
    */
   const handlePageChange = useCallback((page: number) => {
     if (page === currentPage || isScrollingRef.current) return;
 
     isScrollingRef.current = true;
-    
-    // 执行跳转
     router.push(`${baseUrl}?page=${page}`);
 
     // 跳转后执行平滑滚动
-    // 使用 setTimeout 确保在内容加载/渲染开始时触发
     setTimeout(() => {
-      scrollToTop();
+      scrollToTop(() => {
+        isScrollingRef.current = false;
+      });
     }, 50);
-  }, [baseUrl, currentPage, router, scrollToTop]);
+  }, [baseUrl, currentPage, router]);
 
   if (totalPages <= 1) return null;
 
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        pages.push('...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-        pages.push('...');
-        pages.push(totalPages);
-      }
-    }
-    return pages;
-  };
-
-  const pages = getPageNumbers();
+  const pages = getPageNumbers(currentPage, totalPages);
 
   return (
     <div className="flex items-center justify-center gap-2 mt-12 mb-8">
@@ -106,9 +110,7 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
         disabled={currentPage <= 1}
         className={cn(
           "p-2 rounded-xl transition-all duration-200 flex items-center justify-center",
-          currentPage > 1 
-            ? "hover:bg-gray-100 text-gray-600" 
-            : "text-gray-300 cursor-not-allowed"
+          currentPage > 1 ? "hover:bg-gray-100 text-gray-600" : "text-gray-300 cursor-not-allowed"
         )}
       >
         <ChevronLeft className="w-5 h-5" />
@@ -149,9 +151,7 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
         disabled={currentPage >= totalPages}
         className={cn(
           "p-2 rounded-xl transition-all duration-200 flex items-center justify-center",
-          currentPage < totalPages 
-            ? "hover:bg-gray-100 text-gray-600" 
-            : "text-gray-300 cursor-not-allowed"
+          currentPage < totalPages ? "hover:bg-gray-100 text-gray-600" : "text-gray-300 cursor-not-allowed"
         )}
       >
         <ChevronRight className="w-5 h-5" />
