@@ -26,3 +26,19 @@ export function formatDate(date: string | Date) {
     minute: "2-digit",
   });
 }
+
+/**
+ * 从 HTML 或 Markdown 内容中提取第一张图片的 URL
+ * @param {string} content - 文章内容
+ * @returns {string | null} - 图片 URL 或 null
+ */
+export function getFirstImageFromContent(content: string): string | null {
+  if (!content) return null;
+  // 匹配 Markdown 图片格式 ![alt](url)
+  const mdMatch = content.match(/!\[.*?\]\((.*?)\)/);
+  if (mdMatch && mdMatch[1]) return mdMatch[1];
+  // 匹配 HTML 图片格式 <img src="url" ...>
+  const htmlMatch = content.match(/<img.*?src=["'](.*?)["']/);
+  if (htmlMatch && htmlMatch[1]) return htmlMatch[1];
+  return null;
+}
