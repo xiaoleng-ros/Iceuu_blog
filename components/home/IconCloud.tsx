@@ -93,7 +93,7 @@ function CloudIcon({ pos, iconRef }: { pos: IconPosition; iconRef: React.RefCall
  * @param {React.RefObject<HTMLDivElement>} containerRef - 容器引用
  * @returns {Object} 动画相关的状态和方法
  */
-function useIconCloud(icons: string[], containerRef: React.RefObject<HTMLDivElement>) {
+function useIconCloud(icons: string[], containerRef: React.RefObject<HTMLDivElement | null>) {
   const iconsRef = useRef<(HTMLDivElement | null)[]>([]);
   const positionsRef = useRef<IconPosition[]>([]);
   const rotationRef = useRef({ x: 0, y: 0 });
