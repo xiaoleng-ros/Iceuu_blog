@@ -31,7 +31,6 @@ export default function IconCloud({ icons }: IconCloudProps) {
   const { 
     iconsRef, 
     positionsRef, 
-    isHovered, 
     setIsHovered, 
     initialized, 
     handleMouseMove 
