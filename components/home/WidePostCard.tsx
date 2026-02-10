@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import Image from 'next/image';
 import { formatDate, getFirstImageFromContent } from '@/lib/utils';
 import { Clock, Tag } from 'lucide-react';
@@ -125,13 +124,13 @@ function CardContent({ post, isEven }: { post: Blog; isEven: boolean }) {
  * @param {WidePostCardProps} props - 组件属性
  * @returns {JSX.Element} - 返回文章卡片 JSX
  */
-export default function WidePostCard({ post, index }: WidePostCardProps) {
+export default function WidePostCard({ post, index, target }: WidePostCardProps & { target?: string }) {
   const isEven = index % 2 === 0;
   const contentImage = getFirstImageFromContent(post.content);
   const displayImage = post.cover_image || contentImage;
 
   return (
-    <Link href={`/blog/${post.id}`} className="block group">
+    <a href={`/blog/${post.id}`} className="block group" target={target} rel={target === '_blank' ? 'noopener noreferrer' : undefined}>
       <div className={`relative flex flex-col md:flex-row ${!isEven ? 'md:flex-row-reverse' : ''} h-auto md:h-[220px] bg-[#1a1c23] rounded-2xl overflow-hidden shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.8)] transition-all duration-700 hover:-translate-y-2 border border-white/10`}>
         <CardAtmosphere image={displayImage} />
         <CardImage image={displayImage} isEven={isEven} />
@@ -140,7 +139,7 @@ export default function WidePostCard({ post, index }: WidePostCardProps) {
         {/* 鼠标悬停时的光泽扫描效果 */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-20 pointer-events-none bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-1000 z-30" />
       </div>
-    </Link>
+    </a>
   );
 }
 

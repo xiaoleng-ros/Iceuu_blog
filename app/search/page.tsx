@@ -1,157 +1,132 @@
 'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { Suspense } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import PublicLayout from '@/components/layout/PublicLayout';
-import Link from 'next/link';
-import { formatDate } from '@/lib/utils';
-import { Search as SearchIcon, Loader2, FileSearch } from 'lucide-react';
-import { Blog } from '@/types/database';
+import { Loader2, FileSearch, Search as SearchIcon } from 'lucide-react';
+import { useSearch } from './hooks/useSearch';
+import { useSearchParams } from 'next/navigation';
+import Hero from '@/components/home/Hero';
+import WidePostCard from '@/components/home/WidePostCard';
 
 /**
- * 搜索结果项组件
- * @param {Object} props - 组件属性
- * @param {Blog} props.blog - 博客数据
- * @returns JSX.Element
+ * 无搜索结果提示组件
  */
-function SearchResultItem({ blog }: { blog: Blog }) {
+function EmptyResult({ query }: { query: string }) {
   return (
-    <Link href={`/blog/${blog.id}`} className="block group">
-      <Card className="hover:shadow-md transition-all duration-200 hover:border-blue-200 group-hover:-translate-y-0.5">
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">
-              {blog.title}
-            </CardTitle>
-            {blog.category && (
-              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                {blog.category}
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-gray-400 mt-1">
-            发布于 {formatDate(blog.created_at)}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 line-clamp-2 text-sm leading-relaxed">
-            {blog.excerpt}
-          </p>
-        </CardContent>
-      </Card>
-    </Link>
+    <div className="text-center py-20 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm">
+      <FileSearch className="h-16 w-16 text-gray-300 mx-auto mb-6" />
+      <h3 className="text-2xl font-bold text-gray-800">未找到相关结果</h3>
+      <p className="text-gray-500 mt-2 text-lg">尝试使用不同的关键词搜索 "{query}"</p>
+    </div>
   );
 }
 
 /**
- * 无搜索结果提示组件
- * @param {Object} props - 组件属性
- * @param {string} props.query - 搜索关键词
- * @returns JSX.Element
+ * 搜索内容组件
  */
-function EmptyResult({ query }: { query: string }) {
+function SearchContent() {
+  const searchParams = useSearchParams();
+  const {
+    results,
+    loading,
+    loadingMore,
+    searched,
+    totalCount,
+    loadMore,
+  } = useSearch();
+
+  const q = searchParams.get('q') || '';
+  const hasMore = results.length < totalCount;
+
+  // 使用默认背景图或从配置中获取（此处暂用默认）
+  const backgroundImage = '/growth.jpg'; 
+  const heroText = searched ? `搜索到 ${totalCount} 篇与 ${q} 相关的结果` : '全站内容搜索';
+
   return (
-    <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-      <FileSearch className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-900">未找到相关结果</h3>
-      <p className="text-gray-500 mt-1">尝试使用不同的关键词搜索 "{query}"</p>
+    <div className="min-h-screen relative">
+      <Hero backgroundImage={backgroundImage} centerText={heroText} />
+
+      <div className="bg-gray-50/50 min-h-screen relative z-10 -mt-10 md:-mt-16 pt-16 md:pt-24">
+        <div className="container mx-auto px-4 md:px-6 pb-12">
+          <div className="max-w-4xl mx-auto">
+            {loading && results.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-32 space-y-6">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin" />
+                  <SearchIcon className="absolute inset-0 m-auto h-6 w-6 text-blue-500 animate-pulse" />
+                </div>
+                <p className="text-gray-500 text-lg font-medium">正在为您寻找相关内容...</p>
+              </div>
+            ) : (
+              <>
+                {searched && results.length === 0 && (
+                  <EmptyResult query={q} />
+                )}
+
+                {results.length > 0 && (
+                  <div className="space-y-6">
+                    {results.map((blog, index) => (
+                      <WidePostCard 
+                        key={blog.id} 
+                        post={blog} 
+                        index={index} 
+                        target="_blank"
+                      />
+                    ))}
+
+                    {hasMore && (
+                      <div className="flex justify-center mt-12">
+                        <Button 
+                          onClick={loadMore} 
+                          disabled={loadingMore}
+                          size="lg"
+                          className="h-12 px-10 rounded-full bg-[#1a1c23] hover:bg-[#2a2d37] text-white shadow-xl transition-all hover:scale-105 active:scale-95 border border-white/10"
+                        >
+                          {loadingMore ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              正在加载...
+                            </>
+                          ) : (
+                            '点击加载更多'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!searched && !loading && (
+                  <div className="text-center py-32">
+                    <div className="bg-white/80 backdrop-blur-sm inline-block p-12 rounded-3xl shadow-sm border border-gray-100">
+                      <SearchIcon className="h-16 w-16 mx-auto mb-6 text-gray-200" />
+                      <p className="text-xl font-medium text-gray-400">请输入关键词开始探索</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 /**
  * 全站搜索页面组件
- * 提供标题关键词搜索功能，展示博客列表
- * @returns JSX.Element
  */
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-
-  /**
-   * 处理搜索表单提交
-   * 调用 Supabase 进行标题模糊搜索，过滤掉草稿和逻辑删除的文章
-   * @param {React.FormEvent} e - React 表单提交事件
-   * @returns {Promise<void>}
-   */
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    setLoading(true);
-    setSearched(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .select('id, title, excerpt, created_at, category, content, draft, tags')
-        .eq('draft', false)
-        .or('is_deleted.is.null,is_deleted.eq.false')
-        .ilike('title', `%${query}%`)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      setResults((data as Blog[]) || []);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '未知错误';
-      console.error('全站搜索失败:', message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <PublicLayout>
-      <div className="max-w-3xl mx-auto space-y-8 py-8 px-4">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">全站搜索</h1>
-          <p className="text-gray-500">输入关键词查找您感兴趣的文章</p>
+    <PublicLayout headerTransparent={true}>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#1a1c23]">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
         </div>
-        
-        <Card className="border-gray-200 shadow-sm">
-          <CardContent className="p-6">
-            <form onSubmit={handleSearch} className="flex gap-3">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input 
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="搜索文章标题..."
-                  className="pl-10 h-12 text-lg"
-                  autoFocus
-                />
-              </div>
-              <Button type="submit" disabled={loading} size="lg" className="h-12 px-8 bg-blue-600 hover:bg-blue-700">
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : '搜索'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          {searched && results.length === 0 && !loading && (
-            <EmptyResult query={query} />
-          )}
-
-          {results.length > 0 && (
-            <div className="flex items-center justify-between pb-2 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">搜索结果</h2>
-              <span className="text-sm text-gray-500">共 {results.length} 条</span>
-            </div>
-          )}
-
-          <div className="grid gap-4">
-            {results.map((blog) => (
-              <SearchResultItem key={blog.id} blog={blog} />
-            ))}
-          </div>
-        </div>
-      </div>
+      }>
+        <SearchContent />
+      </Suspense>
     </PublicLayout>
   );
 }

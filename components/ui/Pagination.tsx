@@ -98,7 +98,10 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
     if (page === currentPage || isScrollingRef.current) return;
 
     isScrollingRef.current = true;
-    router.push(`${baseUrl}?page=${page}`);
+    
+    // 智能处理 URL 拼接，避免出现 ?? 或 &?
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    router.push(`${baseUrl}${separator}page=${page}`);
 
     // 跳转后执行平滑滚动
     setTimeout(() => {

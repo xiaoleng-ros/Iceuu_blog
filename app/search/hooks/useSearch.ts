@@ -1,49 +1,111 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Blog } from '@/types/database';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 /**
  * 搜索逻辑 Hook
- * 处理搜索关键词、结果列表、加载状态及搜索触发标记
+ * 支持多字段模糊搜索、加载更多、防抖、URL 同步等功能
  * @returns {Object} 搜索状态和处理函数
  */
 export function useSearch() {
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialQuery = searchParams.get('q') || '';
+
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<Blog[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [searched, setSearched] = useState(!!initialQuery);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   /**
-   * 处理搜索表单提交
-   * 调用 Supabase 进行标题模糊搜索，过滤掉草稿和逻辑删除的文章
-   * @param {React.FormEvent} e - React 表单提交事件
+   * 执行搜索的核心函数
+   * @param {string} searchTerm - 搜索关键词
+   * @param {number} currentPage - 当前页码
+   * @param {boolean} append - 是否追加结果（用于加载更多）
    */
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const performSearch = useCallback(async (searchTerm: string, currentPage: number, append: boolean = false) => {
+    if (!searchTerm.trim()) {
+      setResults([]);
+      setTotalCount(0);
+      setSearched(false);
+      return;
+    }
 
-    setLoading(true);
-    setSearched(true);
-    
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setSearched(true);
+    }
+
     try {
-      const { data, error } = await supabase
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error, count } = await supabase
         .from('blogs')
-        .select('id, title, excerpt, created_at, category, content, draft, tags')
+        .select('id, title, excerpt, created_at, category, content, draft, tags, cover_image', { count: 'exact' })
         .eq('draft', false)
         .or('is_deleted.is.null,is_deleted.eq.false')
-        .ilike('title', `%${query}%`)
-        .order('created_at', { ascending: false });
-        
+        .or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
       if (error) throw error;
-      setResults((data as Blog[]) || []);
+      
+      const newResults = (data as Blog[]) || [];
+      if (append) {
+        setResults(prev => [...prev, ...newResults]);
+      } else {
+        setResults(newResults);
+      }
+      setTotalCount(count || 0);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '未知错误';
       console.error('全站搜索失败:', message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  }, [pageSize]);
+
+  // 当 URL 参数变化时更新状态并重置搜索
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    setQuery(q);
+    setPage(1);
+    performSearch(q, 1, false);
+  }, [searchParams, performSearch]);
+
+  /**
+   * 处理搜索提交
+   * @param {string} newQuery - 新的搜索关键词
+   */
+  const handleSearch = (newQuery: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newQuery.trim()) {
+      params.set('q', newQuery.trim());
+    } else {
+      params.delete('q');
+    }
+    // 重置到第一页
+    router.push(`/search?${params.toString()}`);
+  };
+
+  /**
+   * 加载更多结果
+   */
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    performSearch(query, nextPage, true);
   };
 
   return {
@@ -51,7 +113,12 @@ export function useSearch() {
     setQuery,
     results,
     loading,
+    loadingMore,
     searched,
-    handleSearch
+    totalCount,
+    page,
+    pageSize,
+    handleSearch,
+    loadMore
   };
 }
