@@ -8,7 +8,6 @@ interface BlogPaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   totalItems: number;
-  pageSize: number;
   itemLabel?: string;
 }
 
@@ -22,7 +21,6 @@ export function BlogPagination({
   totalPages, 
   onPageChange, 
   totalItems,
-  pageSize,
   itemLabel = "篇文章"
 }: BlogPaginationProps) {
   if (totalPages <= 1) return null;

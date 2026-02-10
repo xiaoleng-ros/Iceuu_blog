@@ -1,5 +1,3 @@
-import { User } from '@supabase/supabase-js';
-
 export interface ToastData {
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';

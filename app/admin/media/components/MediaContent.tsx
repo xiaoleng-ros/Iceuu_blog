@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/Card';
-import { Loader2, ImageIcon, Eye, Copy, Check, Trash2, List as ListIcon } from 'lucide-react';
+import { Loader2, ImageIcon, Eye, Copy, Check, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn, formatDate } from '@/lib/utils';
 import { MediaItem } from '../hooks/useMediaManagement';
@@ -15,6 +15,99 @@ interface MediaContentProps {
   onCopy: (url: string, id: string) => void;
   copiedId: string | null;
   deletingId: string | null;
+}
+
+/**
+ * 媒体卡片组件 (网格视图)
+ */
+function GridItem({ 
+  item, onPreview, onCopy, onDelete, copiedId, deletingId 
+}: { 
+  item: MediaItem; 
+  onPreview: (item: MediaItem) => void;
+  onCopy: (url: string, id: string) => void;
+  onDelete: (id: string) => void;
+  copiedId: string | null;
+  deletingId: string | null;
+}) {
+  return (
+    <Card className="group overflow-hidden border border-[#F2F3F5] hover:border-[#40A9FF]/30 hover:shadow-[0_8px_24px_rgba(64,169,255,0.12)] transition-all duration-300 rounded-2xl bg-white">
+      <CardContent className="p-0">
+        <div className="relative aspect-square bg-[#F9FBFF] overflow-hidden">
+          <Image
+            src={item.url}
+            alt={item.filename}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 15vw"
+            unoptimized
+          />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 backdrop-blur-[2px]">
+            <button onClick={() => onPreview(item)} className="p-2 bg-white text-[#1D2129] rounded-xl hover:bg-[#165DFF] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-300" title="预览">
+              <Eye className="h-4 w-4" />
+            </button>
+            <button 
+              onClick={() => onCopy(item.url, item.id)} 
+              className={cn("p-2 rounded-xl transition-all transform translate-y-4 group-hover:translate-y-0 duration-300", copiedId === item.id ? "bg-[#00B42A] text-white" : "bg-white text-[#1D2129] hover:bg-[#165DFF] hover:text-white")}
+              title="复制链接"
+            >
+              {copiedId === item.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </button>
+            <button 
+              onClick={() => confirm('确定要删除这个文件吗？') && onDelete(item.id)}
+              disabled={deletingId === item.id}
+              className="p-2 bg-white text-[#F53F3F] rounded-xl hover:bg-[#F53F3F] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-300"
+              title="删除"
+            >
+              {deletingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+        <div className="p-3">
+          <p className="text-xs font-medium text-[#1D2129] truncate" title={item.filename}>{item.filename}</p>
+          <p className="text-[10px] text-[#86909C] mt-1">{formatDate(item.created_at)}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * 媒体列表行组件 (列表视图)
+ */
+function ListItem({ 
+  item, onPreview, onCopy, onDelete, copiedId 
+}: { 
+  item: MediaItem; 
+  onPreview: (item: MediaItem) => void;
+  onCopy: (url: string, id: string) => void;
+  onDelete: (id: string) => void;
+  copiedId: string | null;
+}) {
+  return (
+    <tr className="hover:bg-[#F9FBFF]/50 transition-colors group">
+      <td className="px-6 py-3">
+        <div className="relative h-12 w-12 rounded-lg overflow-hidden border border-[#F2F3F5] bg-[#F9FBFF]">
+          <Image src={item.url} alt={item.filename} fill className="object-cover" unoptimized />
+        </div>
+      </td>
+      <td className="px-6 py-3 font-medium text-[#1D2129]">{item.filename}</td>
+      <td className="px-6 py-3 text-[#86909C]">{formatDate(item.created_at)}</td>
+      <td className="px-6 py-3 text-right">
+        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onPreview(item)} className="p-2 text-[#4E5969] hover:text-[#165DFF] hover:bg-[#E8F3FF] rounded-lg transition-all" title="预览">
+            <Eye className="h-4 w-4" />
+          </button>
+          <button onClick={() => onCopy(item.url, item.id)} className={cn("p-2 rounded-lg transition-all", copiedId === item.id ? "text-[#00B42A] bg-[#EFFFF0]" : "text-[#4E5969] hover:text-[#165DFF] hover:bg-[#E8F3FF]")} title="复制">
+            {copiedId === item.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          </button>
+          <button onClick={() => confirm('确定要删除吗？') && onDelete(item.id)} className="p-2 text-[#4E5969] hover:text-[#F53F3F] hover:bg-[#FFF2F2] rounded-lg transition-all" title="删除">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
 }
 
 /**
@@ -58,61 +151,15 @@ export function MediaContent({
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
           {media.map((item) => (
-            <Card 
+            <GridItem 
               key={item.id} 
-              className="group overflow-hidden border border-[#F2F3F5] hover:border-[#40A9FF]/30 hover:shadow-[0_8px_24px_rgba(64,169,255,0.12)] transition-all duration-300 rounded-2xl bg-white"
-            >
-              <CardContent className="p-0">
-                <div className="relative aspect-square bg-[#F9FBFF] overflow-hidden">
-                  <Image
-                    src={item.url}
-                    alt={item.filename}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 15vw"
-                    unoptimized
-                  />
-                  {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                    <button 
-                      onClick={() => onPreview(item)}
-                      className="p-2 bg-white text-[#1D2129] rounded-xl hover:bg-[#165DFF] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-300 delay-[0ms]"
-                      title="预览"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button 
-                      onClick={() => onCopy(item.url, item.id)}
-                      className={cn(
-                        "p-2 rounded-xl transition-all transform translate-y-4 group-hover:translate-y-0 duration-300 delay-[50ms]",
-                        copiedId === item.id ? "bg-[#00B42A] text-white" : "bg-white text-[#1D2129] hover:bg-[#165DFF] hover:text-white"
-                      )}
-                      title="复制链接"
-                    >
-                      {copiedId === item.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </button>
-                    <button 
-                      onClick={() => {
-                        if (confirm('确定要删除这个文件吗？')) {
-                          onDelete(item.id);
-                        }
-                      }}
-                      disabled={deletingId === item.id}
-                      className="p-2 bg-white text-[#F53F3F] rounded-xl hover:bg-[#F53F3F] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-300 delay-[100ms]"
-                      title="删除"
-                    >
-                      {deletingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs font-medium text-[#1D2129] truncate" title={item.filename}>
-                    {item.filename}
-                  </p>
-                  <p className="text-[10px] text-[#86909C] mt-1">{formatDate(item.created_at)}</p>
-                </div>
-              </CardContent>
-            </Card>
+              item={item} 
+              onPreview={onPreview} 
+              onCopy={onCopy} 
+              onDelete={onDelete} 
+              copiedId={copiedId} 
+              deletingId={deletingId} 
+            />
           ))}
         </div>
       ) : (
@@ -128,40 +175,14 @@ export function MediaContent({
             </thead>
             <tbody className="divide-y divide-[#F2F3F5]">
               {media.map((item) => (
-                <tr key={item.id} className="hover:bg-[#F9FBFF]/50 transition-colors group">
-                  <td className="px-6 py-3">
-                    <div className="relative h-12 w-12 rounded-lg overflow-hidden border border-[#F2F3F5] bg-[#F9FBFF]">
-                      <Image
-                        src={item.url}
-                        alt={item.filename}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
-                  </td>
-                  <td className="px-6 py-3 font-medium text-[#1D2129]">{item.filename}</td>
-                  <td className="px-6 py-3 text-[#86909C]">{formatDate(item.created_at)}</td>
-                  <td className="px-6 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => onPreview(item)} className="p-2 text-[#4E5969] hover:text-[#165DFF] hover:bg-[#E8F3FF] rounded-lg transition-all" title="预览">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => onCopy(item.url, item.id)} className={cn("p-2 rounded-lg transition-all", copiedId === item.id ? "text-[#00B42A] bg-[#EFFFF0]" : "text-[#4E5969] hover:text-[#165DFF] hover:bg-[#E8F3FF]")} title="复制">
-                        {copiedId === item.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('确定要删除吗？')) onDelete(item.id);
-                        }} 
-                        className="p-2 text-[#4E5969] hover:text-[#F53F3F] hover:bg-[#FFF2F2] rounded-lg transition-all" 
-                        title="删除"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <ListItem 
+                  key={item.id} 
+                  item={item} 
+                  onPreview={onPreview} 
+                  onCopy={onCopy} 
+                  onDelete={onDelete} 
+                  copiedId={copiedId} 
+                />
               ))}
             </tbody>
           </table>
