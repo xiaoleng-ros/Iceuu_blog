@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 /**
  * 站点配置信息接口
  */
-interface SiteConfig {
+export interface SiteConfig {
   /** 站点名称 */
   site_name?: string;
   /** 头像 URL */

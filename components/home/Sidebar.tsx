@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GraduationCap } from 'lucide-react';
 import Image from 'next/image';
-import { useSiteStore } from '@/lib/store/useSiteStore';
+import { useSiteStore, SiteConfig } from '@/lib/store/useSiteStore';
 import IconCloud from './IconCloud';
 import { useState, useEffect } from 'react';
 
@@ -43,8 +43,10 @@ export default function Sidebar() {
 
 /**
  * 个人信息卡片组件
+ * @param {Object} props - 组件属性
+ * @param {SiteConfig} props.config - 站点配置信息
  */
-function ProfileCard({ config }: { config: any }) {
+function ProfileCard({ config }: { config: SiteConfig }) {
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl">
       <div className="h-24 bg-[url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center relative">
@@ -66,8 +68,10 @@ function ProfileCard({ config }: { config: any }) {
 
 /**
  * 社交链接组件
+ * @param {Object} props - 组件属性
+ * @param {SiteConfig} props.config - 站点配置信息
  */
-function SocialLinks({ config }: { config: any }) {
+function SocialLinks({ config }: { config: SiteConfig }) {
   const socials = [
     { key: 'github_url', icon: 'github.svg', title: 'GitHub', color: 'hover:bg-black/10' },
     { key: 'gitee_url', icon: 'gitee.svg', title: 'Gitee', color: 'hover:bg-[#c71d23]/10' },
@@ -87,7 +91,7 @@ function SocialLinks({ config }: { config: any }) {
         {socials.map(social => config[social.key] && (
           <a 
             key={social.key} 
-            href={config[social.key]} 
+            href={config[social.key] as string} 
             target="_blank" 
             rel="noreferrer" 
             className={`group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 transition-all duration-300 ${social.color}`}
