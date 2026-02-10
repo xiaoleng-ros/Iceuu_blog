@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 /**
  * 构建博客列表查询基础对象
  */

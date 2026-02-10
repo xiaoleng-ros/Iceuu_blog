@@ -1,8 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
-
 /**
  * 处理用户登录请求
  * @param {Request} request - 请求对象，包含 email 和 password

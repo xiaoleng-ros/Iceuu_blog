@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
-export const runtime = 'edge';
-
 /**
  * 处理获取系统配置的 GET 请求
  * @returns {Promise<NextResponse>} - 返回所有配置项的对象格式

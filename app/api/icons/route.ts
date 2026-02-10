@@ -1,12 +1,5 @@
 import { NextResponse } from 'next/server';
 
-/**
- * GET /api/icons
- * Cloudflare Pages (Edge Runtime) 不支持 fs 模块
- * 因此这里改为硬编码图标列表，或者你可以将其存入数据库
- */
-export const runtime = 'edge';
-
 const SVG_ICONS = [
   '34 - Adobe Premiere Pro (Flat).svg',
   'Angular.svg',

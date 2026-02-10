@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 /**
  * 获取全部标签列表
  * @returns {Promise<NextResponse>} - 返回标签数据数组

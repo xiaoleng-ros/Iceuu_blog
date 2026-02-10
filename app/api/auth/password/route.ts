@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClientWithToken } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 /**
  * 处理获取后台管理密码的 GET 请求
  * 从 site_config 表中获取配置的密码

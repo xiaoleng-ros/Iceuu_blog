@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClientWithToken } from '@/lib/supabase';
 import { uploadImageToGitHub, getJsDelivrUrl, deleteFileFromGitHub } from '@/lib/github';
 
-export const runtime = 'edge';
-
 /**
  * 获取 GitHub 配置
  * @param requestSupabase - Supabase 客户端

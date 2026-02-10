@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 /**
  * 获取指定 ID 的博客详情
  * @param {Request} request - 请求对象
