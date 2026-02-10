@@ -19,7 +19,7 @@ export async function GET() {
   }
 
   // 将数组转换为键值对对象格式，方便前端消费
-  const config = data.reduce((acc: any, curr) => {
+  const config = data.reduce((acc: Record<string, string>, curr) => {
     acc[curr.key] = curr.value;
     return acc;
   }, {});
@@ -76,8 +76,9 @@ export async function POST(request: Request) {
     revalidatePath('/');
 
     return NextResponse.json({ success: true, message: '配置保存成功' });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error('保存配置异常:', e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

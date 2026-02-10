@@ -67,8 +67,8 @@ export function useBackgroundSettings(
       } else {
         throw new Error(json.error || '上传失败');
       }
-    } catch (error: any) {
-      setToast({ message: error.message, type: 'error' });
+    } catch (error) {
+      setToast({ message: error instanceof Error ? error.message : '上传失败', type: 'error' });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

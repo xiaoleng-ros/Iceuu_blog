@@ -84,13 +84,13 @@ async function getBlog(id: string) {
 
 /**
  * 获取站点配置信息（如背景图、站点标题等）
- * @returns Promise<Record<string, any>> - 返回以配置项 key 为键的对象
+ * @returns Promise<Record<string, string>> - 返回以配置项 key 为键的对象
  */
 async function getSiteConfig() {
   try {
     const { data } = await supabase.from('site_config').select('*');
     if (!data) return {};
-    return data.reduce((acc: any, curr) => {
+    return data.reduce((acc: Record<string, string>, curr) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {});

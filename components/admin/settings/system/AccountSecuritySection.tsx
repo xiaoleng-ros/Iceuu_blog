@@ -6,7 +6,73 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
-import { AccountSecuritySectionProps } from './types';
+import { AccountSecuritySectionProps, PasswordData } from './types';
+
+/**
+ * 密码输入字段组件
+ */
+function PasswordField({
+  id,
+  name,
+  label,
+  value,
+  placeholder,
+  showPassword,
+  setShowPassword,
+  error,
+  onChange,
+  autoComplete
+}: {
+  id: string;
+  name: keyof PasswordData;
+  label: string;
+  value: string;
+  placeholder: string;
+  showPassword?: boolean;
+  setShowPassword?: (show: boolean) => void;
+  error?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+        <span className="text-[#F53F3F]">*</span> {label}
+      </Label>
+      <div className="relative group">
+        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+        <Input
+          id={id}
+          name={name}
+          type={showPassword ? "text" : "password"}
+          value={value}
+          onChange={onChange}
+          autoComplete={autoComplete}
+          className={cn(
+            "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
+            error && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+          )}
+          placeholder={placeholder}
+        />
+        {setShowPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86909C] hover:text-[#165DFF] transition-colors"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 /**
  * 账号安全设置组件
@@ -64,100 +130,43 @@ export function AccountSecuritySection({
               <p className="text-[11px] text-[#86909C]">账号邮箱不可直接修改，请在个人资料中更新</p>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                <span className="text-[#F53F3F]">*</span> 旧密码
-              </Label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
-                <Input
-                  name="currentPassword"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  autoComplete="current-password"
-                  className={cn(
-                    "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-                    passwordErrors.currentPassword && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-                  )}
-                  placeholder="请输入当前密码"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86909C] hover:text-[#165DFF] transition-colors"
-                >
-                  {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {passwordErrors.currentPassword && (
-                <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-                  {passwordErrors.currentPassword}
-                </p>
-              )}
-            </div>
+            <PasswordField
+              id="currentPassword"
+              name="currentPassword"
+              label="旧密码"
+              value={passwordData.currentPassword}
+              placeholder="请输入当前密码"
+              showPassword={showCurrentPassword}
+              setShowPassword={setShowCurrentPassword}
+              error={passwordErrors.currentPassword}
+              onChange={handlePasswordChange}
+              autoComplete="current-password"
+            />
 
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                <span className="text-[#F53F3F]">*</span> 新密码
-              </Label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
-                <Input
-                  name="newPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  autoComplete="new-password"
-                  className={cn(
-                    "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-                    passwordErrors.newPassword && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-                  )}
-                  placeholder="请输入新密码"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86909C] hover:text-[#165DFF] transition-colors"
-                >
-                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {passwordErrors.newPassword && (
-                <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-                  {passwordErrors.newPassword}
-                </p>
-              )}
-            </div>
+            <PasswordField
+              id="newPassword"
+              name="newPassword"
+              label="新密码"
+              value={passwordData.newPassword}
+              placeholder="请输入新密码"
+              showPassword={showNewPassword}
+              setShowPassword={setShowNewPassword}
+              error={passwordErrors.newPassword}
+              onChange={handlePasswordChange}
+              autoComplete="new-password"
+            />
 
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-                <span className="text-[#F53F3F]">*</span> 确认新密码
-              </Label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
-                <Input
-                  name="confirmPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  value={passwordData.confirmPassword}
-                  onChange={handlePasswordChange}
-                  autoComplete="new-password"
-                  className={cn(
-                    "h-11 pl-10 pr-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-                    passwordErrors.confirmPassword && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-                  )}
-                  placeholder="请再次输入新密码"
-                />
-              </div>
-              {passwordErrors.confirmPassword && (
-                <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-                  {passwordErrors.confirmPassword}
-                </p>
-              )}
-            </div>
+            <PasswordField
+              id="confirmPassword"
+              name="confirmPassword"
+              label="确认新密码"
+              value={passwordData.confirmPassword}
+              placeholder="请再次输入新密码"
+              showPassword={showNewPassword}
+              error={passwordErrors.confirmPassword}
+              onChange={handlePasswordChange}
+              autoComplete="new-password"
+            />
           </div>
 
           <div className="pt-2 flex justify-end">

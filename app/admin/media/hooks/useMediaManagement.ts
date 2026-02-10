@@ -29,9 +29,6 @@ export function useMediaManagement() {
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
-  /**
-   * 显示提示信息
-   */
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
@@ -42,26 +39,13 @@ export function useMediaManagement() {
   const fetchMedia = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const url = new URL('/api/media', window.location.origin);
       url.searchParams.append('limit', '100');
-      if (selectedType !== 'all') {
-        url.searchParams.append('type', selectedType);
-      }
+      if (selectedType !== 'all') url.searchParams.append('type', selectedType);
 
-      const res = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setMedia(json.data || []);
-      }
+      const json = await fetchWithAuth(url.toString());
+      if (json) setMedia(json.data || []);
     } catch (_error) {
-      console.error('Fetch media error:', _error);
       showToast('获取媒体库失败', 'error');
     } finally {
       setLoading(false);
@@ -81,31 +65,21 @@ export function useMediaManagement() {
 
     try {
       setUploading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', 'site');
 
-      const res = await fetch('/api/upload', {
+      const json = await fetchWithAuth('/api/upload', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
         body: formData,
       });
 
-      const json = await res.json();
-      if (res.ok) {
+      if (json) {
         showToast('图片上传成功', 'success');
         fetchMedia();
-      } else {
-        showToast('上传失败: ' + json.error, 'error');
       }
-    } catch (_error) {
-      console.error('Upload error:', _error);
-      showToast('上传出错', 'error');
+    } catch (err: any) {
+      showToast('上传失败: ' + (err.message || '未知错误'), 'error');
     } finally {
       setUploading(false);
     }
@@ -116,30 +90,19 @@ export function useMediaManagement() {
    */
   const handleDelete = async (id: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const res = await fetch(`/api/media`, {
+      const json = await fetchWithAuth(`/api/media`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [id] })
       });
 
-      if (res.ok) {
+      if (json) {
         setMedia(prev => prev.filter(item => item.id !== id));
         showToast('文件已从数据库和 GitHub 同步删除', 'success');
-        setDeletingId(null);
-      } else {
-        const json = await res.json();
-        showToast('删除失败: ' + (json.error || '未知错误'), 'error');
-        setDeletingId(null);
       }
-    } catch (_error) {
-      console.error('Delete error:', _error);
-      showToast('删除出错', 'error');
+    } catch (err: any) {
+      showToast('删除失败: ' + (err.message || '未知错误'), 'error');
+    } finally {
       setDeletingId(null);
     }
   };
@@ -160,24 +123,32 @@ export function useMediaManagement() {
 
   return {
     media: filteredMedia,
-    loading,
-    uploading,
-    copiedId,
-    viewMode,
-    setViewMode,
-    selectedType,
-    setSelectedType,
-    searchQuery,
-    setSearchQuery,
-    deletingId,
-    setDeletingId,
-    previewItem,
-    setPreviewItem,
-    toast,
-    setToast,
-    handleUpload,
-    handleDelete,
-    copyToClipboard,
-    fetchMedia
+    loading, uploading, copiedId, viewMode, setViewMode,
+    selectedType, setSelectedType, searchQuery, setSearchQuery,
+    deletingId, setDeletingId, previewItem, setPreviewItem,
+    toast, setToast, handleUpload, handleDelete, copyToClipboard, fetchMedia
   };
 }
+
+/**
+ * 带有身份验证的 fetch 辅助函数
+ * @param url - 请求地址
+ * @param options - 请求配置
+ * @returns 返回响应 JSON 数据，如果失败则抛出错误
+ */
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('未登录');
+
+  const headers = {
+    ...options.headers,
+    Authorization: `Bearer ${session.access_token}`,
+  };
+
+  const res = await fetch(url, { ...options, headers });
+  const json = await res.json();
+
+  if (!res.ok) throw new Error(json.error || '请求失败');
+  return json;
+}
+

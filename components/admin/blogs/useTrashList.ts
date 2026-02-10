@@ -15,46 +15,59 @@ interface Blog {
   is_deleted: boolean;
 }
 
+interface FilterDateRange {
+  start: string;
+  end: string;
+}
+
+interface ConfirmConfig {
+  isOpen: boolean;
+  title: string;
+  description: string;
+  confirmText: string;
+  variant: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+}
+
 /**
- * 回收站列表管理自定义 Hook
- * @returns 包含回收站列表、筛选、批量操作、分页等状态和操作
+ * 管理回收站筛选条件获取的 Hook
  */
-export function useTrashList() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
+function useTrashFiltersFetch() {
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
-  const [confirmConfig, setConfirmConfig] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    confirmText: string;
-    variant: 'danger' | 'warning' | 'info';
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    description: '',
-    confirmText: '',
-    variant: 'danger',
-    onConfirm: () => {},
-  });
-  
-  const [filterTitle, setFilterTitle] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState({ start: '', end: '' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    setToast({ message, type });
+  const fetchFilters = useCallback(async () => {
+    const [catRes, tagRes] = await Promise.all([
+      supabase.from('categories').select('name'),
+      supabase.from('tags').select('name')
+    ]);
+    setCategories(catRes.data?.map(c => c.name) || []);
+    setTags(tagRes.data?.map(t => t.name) || []);
   }, []);
 
+  return { categories, tags, fetchFilters };
+}
+
+/**
+ * 管理回收站文章获取逻辑的 Hook
+ */
+function useTrashFetch({
+  filterCategory,
+  filterTag,
+  filterTitle,
+  filterDateRange,
+  showToast,
+  setBlogs,
+  setLoading
+}: {
+  filterCategory: string;
+  filterTag: string;
+  filterTitle: string;
+  filterDateRange: FilterDateRange;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const fetchBlogs = useCallback(async (isInitial = false) => {
     try {
       setLoading(true);
@@ -91,36 +104,33 @@ export function useTrashList() {
     } finally {
       setLoading(false);
     }
-  }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast]);
+  }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast, setBlogs, setLoading]);
 
-  const fetchFilters = useCallback(async () => {
-    const [catRes, tagRes] = await Promise.all([
-      supabase.from('categories').select('name'),
-      supabase.from('tags').select('name')
-    ]);
-    setCategories(catRes.data?.map(c => c.name) || []);
-    setTags(tagRes.data?.map(t => t.name) || []);
-  }, []);
+  return { fetchBlogs };
+}
 
-  useEffect(() => {
-    fetchFilters();
-    fetchBlogs(true);
-  }, [fetchFilters, fetchBlogs]);
-
-  const handleFilter = useCallback(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    setCurrentPage(1);
-    debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
-  }, [fetchBlogs]);
-
-  const handleReset = useCallback(() => {
-    setFilterTitle('');
-    setFilterCategory('');
-    setFilterTag('');
-    setFilterDateRange({ start: '', end: '' });
-    setCurrentPage(1);
-    setTimeout(() => fetchBlogs(true), 100);
-  }, [fetchBlogs]);
+/**
+ * 管理回收站操作逻辑的 Hook（恢复、彻底删除等）
+ */
+function useTrashOperations({
+  setBlogs,
+  setSelectedIds,
+  showToast,
+  selectedIds
+}: {
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>;
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  selectedIds: string[];
+}) {
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: '',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
 
   const handleRestore = (id: string) => {
     setConfirmConfig({
@@ -257,6 +267,79 @@ export function useTrashList() {
       }
     });
   };
+
+  return {
+    confirmConfig,
+    setConfirmConfig,
+    handleRestore,
+    handlePermanentDelete,
+    handleBatchRestore,
+    handleBatchPermanentDelete
+  };
+}
+
+/**
+ * 回收站列表管理自定义 Hook
+ * @returns 包含回收站列表、筛选、批量操作、分页等状态和操作
+ */
+export function useTrashList() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  const [filterTitle, setFilterTitle] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({ message, type });
+  }, []);
+
+  const { categories, tags, fetchFilters } = useTrashFiltersFetch();
+  
+  const { fetchBlogs } = useTrashFetch({
+    filterCategory,
+    filterTag,
+    filterTitle,
+    filterDateRange,
+    showToast,
+    setBlogs,
+    setLoading
+  });
+
+  const {
+    confirmConfig,
+    setConfirmConfig,
+    handleRestore,
+    handlePermanentDelete,
+    handleBatchRestore,
+    handleBatchPermanentDelete
+  } = useTrashOperations({ setBlogs, setSelectedIds, showToast, selectedIds });
+
+  useEffect(() => {
+    fetchFilters();
+    fetchBlogs(true);
+  }, [fetchFilters, fetchBlogs]);
+
+  const handleFilter = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    setCurrentPage(1);
+    debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
+  }, [fetchBlogs]);
+
+  const handleReset = useCallback(() => {
+    setFilterTitle('');
+    setFilterCategory('');
+    setFilterTag('');
+    setFilterDateRange({ start: '', end: '' });
+    setCurrentPage(1);
+    setTimeout(() => fetchBlogs(true), 100);
+  }, [fetchBlogs]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 

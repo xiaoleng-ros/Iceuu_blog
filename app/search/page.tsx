@@ -12,6 +12,57 @@ import { Search as SearchIcon, Loader2, FileSearch } from 'lucide-react';
 import { Blog } from '@/types/database';
 
 /**
+ * 搜索结果项组件
+ * @param {Object} props - 组件属性
+ * @param {Blog} props.blog - 博客数据
+ * @returns JSX.Element
+ */
+function SearchResultItem({ blog }: { blog: Blog }) {
+  return (
+    <Link href={`/blog/${blog.id}`} className="block group">
+      <Card className="hover:shadow-md transition-all duration-200 hover:border-blue-200 group-hover:-translate-y-0.5">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">
+              {blog.title}
+            </CardTitle>
+            {blog.category && (
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full whitespace-nowrap ml-2">
+                {blog.category}
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            发布于 {formatDate(blog.created_at)}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 line-clamp-2 text-sm leading-relaxed">
+            {blog.excerpt}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+/**
+ * 无搜索结果提示组件
+ * @param {Object} props - 组件属性
+ * @param {string} props.query - 搜索关键词
+ * @returns JSX.Element
+ */
+function EmptyResult({ query }: { query: string }) {
+  return (
+    <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+      <FileSearch className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-gray-900">未找到相关结果</h3>
+      <p className="text-gray-500 mt-1">尝试使用不同的关键词搜索 "{query}"</p>
+    </div>
+  );
+}
+
+/**
  * 全站搜索页面组件
  * 提供标题关键词搜索功能，展示博客列表
  * @returns JSX.Element
@@ -46,8 +97,9 @@ export default function SearchPage() {
         
       if (error) throw error;
       setResults((data as Blog[]) || []);
-    } catch (error: any) {
-      console.error('全站搜索失败:', error.message || error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '未知错误';
+      console.error('全站搜索失败:', message);
     } finally {
       setLoading(false);
     }
@@ -83,11 +135,7 @@ export default function SearchPage() {
 
         <div className="space-y-4">
           {searched && results.length === 0 && !loading && (
-            <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <FileSearch className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">未找到相关结果</h3>
-              <p className="text-gray-500 mt-1">尝试使用不同的关键词搜索 "{query}"</p>
-            </div>
+            <EmptyResult query={query} />
           )}
 
           {results.length > 0 && (
@@ -99,30 +147,7 @@ export default function SearchPage() {
 
           <div className="grid gap-4">
             {results.map((blog) => (
-              <Link key={blog.id} href={`/blog/${blog.id}`} className="block group">
-                <Card className="hover:shadow-md transition-all duration-200 hover:border-blue-200 group-hover:-translate-y-0.5">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">
-                        {blog.title}
-                      </CardTitle>
-                      {blog.category && (
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                          {blog.category}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      发布于 {formatDate(blog.created_at)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 line-clamp-2 text-sm leading-relaxed">
-                      {blog.excerpt}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+              <SearchResultItem key={blog.id} blog={blog} />
             ))}
           </div>
         </div>

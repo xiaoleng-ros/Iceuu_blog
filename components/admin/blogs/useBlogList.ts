@@ -20,32 +20,17 @@ interface SortConfig {
   direction: 'asc' | 'desc' | null;
 }
 
+interface FilterDateRange {
+  start: string;
+  end: string;
+}
+
 /**
- * 博客列表管理自定义 Hook
- * @returns 包含博客列表、筛选、排序、分页等状态和操作
+ * 管理博客筛选条件获取的 Hook
  */
-export function useBlogList() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
+function useBlogFiltersFetch(showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void) {
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
-  
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [blogIdToDelete, setBlogIdToDelete] = useState<string | null>(null);
-  
-  const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([{ key: 'id', direction: 'desc' }]);
-  const [filterTitle, setFilterTitle] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState({ start: '', end: '' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    setToast({ message, type });
-  }, []);
 
   const fetchFilters = useCallback(async () => {
     try {
@@ -59,6 +44,29 @@ export function useBlogList() {
     }
   }, [showToast]);
 
+  return { categories, tags, fetchFilters };
+}
+
+/**
+ * 管理博客列表获取逻辑的 Hook
+ */
+function useBlogFetch({
+  filterCategory,
+  filterTag,
+  filterTitle,
+  filterDateRange,
+  showToast,
+  setBlogs,
+  setLoading
+}: {
+  filterCategory: string;
+  filterTag: string;
+  filterTitle: string;
+  filterDateRange: FilterDateRange;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const fetchBlogs = useCallback(async (isInitial = false) => {
     try {
       setLoading(true);
@@ -108,45 +116,16 @@ export function useBlogList() {
     } finally {
       setLoading(false);
     }
-  }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast]);
+  }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast, setBlogs, setLoading]);
 
-  useEffect(() => {
-    fetchFilters();
-    fetchBlogs(true);
-  }, [fetchFilters, fetchBlogs]);
+  return { fetchBlogs };
+}
 
-  const handleFilter = useCallback(() => {
-    const hasValue = filterTitle.trim() !== '' || 
-                     filterCategory !== '' || 
-                     filterTag !== '' || 
-                     (filterDateRange.start !== '' || filterDateRange.end !== '');
-
-    if (!hasValue) {
-      showToast('筛选条件不能为空', 'warning');
-      return;
-    }
-
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    setCurrentPage(1);
-    debounceTimer.current = setTimeout(() => {
-      fetchBlogs();
-    }, 300);
-  }, [filterTitle, filterCategory, filterTag, filterDateRange, fetchBlogs, showToast]);
-
-  const handleReset = useCallback(() => {
-    setFilterTitle('');
-    setFilterCategory('');
-    setFilterTag('');
-    setFilterDateRange({ start: '', end: '' });
-    setCurrentPage(1);
-    setLoading(true);
-    setTimeout(() => {
-      fetchBlogs(true);
-    }, 100);
-  }, [fetchBlogs]);
+/**
+ * 管理博客排序逻辑的 Hook
+ */
+function useBlogSorting(blogs: Blog[]) {
+  const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([{ key: 'id', direction: 'desc' }]);
 
   const handleSort = (key: keyof Blog, multiSort = false) => {
     setSortConfigs(prev => {
@@ -159,12 +138,8 @@ export function useBlogList() {
           return [...prev, { key, direction: 'desc' }];
         }
       } else {
-        if (existingConfig) {
-          const nextDir = existingConfig.direction === 'desc' ? 'asc' : 'desc';
-          return [{ key, direction: nextDir }];
-        } else {
-          return [{ key, direction: 'desc' }];
-        }
+        const nextDir = existingConfig?.direction === 'desc' ? 'asc' : 'desc';
+        return [{ key, direction: nextDir }];
       }
     });
   };
@@ -194,12 +169,23 @@ export function useBlogList() {
     });
   }, [blogs, sortConfigs]);
 
-  const paginatedBlogs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedBlogs.slice(start, start + pageSize);
-  }, [sortedBlogs, currentPage]);
+  return { sortConfigs, handleSort, sortedBlogs };
+}
 
-  const totalPages = Math.ceil(sortedBlogs.length / pageSize) || 1;
+/**
+ * 管理博客操作逻辑的 Hook（导出、删除等）
+ */
+function useBlogOperations({
+  blogs,
+  setBlogs,
+  showToast
+}: {
+  blogs: Blog[];
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+}) {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [blogIdToDelete, setBlogIdToDelete] = useState<string | null>(null);
 
   const handleExport = () => {
     const headers = ['ID', '标题', '摘要', '分类', '标签', '创建时间', '状态'];
@@ -252,6 +238,105 @@ export function useBlogList() {
       setDeleteConfirmOpen(false);
     }
   };
+
+  return {
+    deleteConfirmOpen,
+    setDeleteConfirmOpen,
+    blogIdToDelete,
+    handleExport,
+    handleDelete,
+    confirmDelete
+  };
+}
+
+/**
+ * 博客列表管理自定义 Hook
+ * @returns 包含博客列表、筛选、排序、分页等状态和操作
+ */
+export function useBlogList() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+  
+  const [filterTitle, setFilterTitle] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({ message, type });
+  }, []);
+
+  const { categories, tags, fetchFilters } = useBlogFiltersFetch(showToast);
+  
+  const { fetchBlogs } = useBlogFetch({
+    filterCategory,
+    filterTag,
+    filterTitle,
+    filterDateRange,
+    showToast,
+    setBlogs,
+    setLoading
+  });
+
+  const { sortConfigs, handleSort, sortedBlogs } = useBlogSorting(blogs);
+
+  const {
+    deleteConfirmOpen,
+    setDeleteConfirmOpen,
+    blogIdToDelete,
+    handleExport,
+    handleDelete,
+    confirmDelete
+  } = useBlogOperations({ blogs, setBlogs, showToast });
+
+  useEffect(() => {
+    fetchFilters();
+    fetchBlogs(true);
+  }, [fetchFilters, fetchBlogs]);
+
+  const handleFilter = useCallback(() => {
+    const hasValue = filterTitle.trim() !== '' || 
+                     filterCategory !== '' || 
+                     filterTag !== '' || 
+                     (filterDateRange.start !== '' || filterDateRange.end !== '');
+
+    if (!hasValue) {
+      showToast('筛选条件不能为空', 'warning');
+      return;
+    }
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    setCurrentPage(1);
+    debounceTimer.current = setTimeout(() => {
+      fetchBlogs();
+    }, 300);
+  }, [filterTitle, filterCategory, filterTag, filterDateRange, fetchBlogs, showToast]);
+
+  const handleReset = useCallback(() => {
+    setFilterTitle('');
+    setFilterCategory('');
+    setFilterTag('');
+    setFilterDateRange({ start: '', end: '' });
+    setCurrentPage(1);
+    setLoading(true);
+    setTimeout(() => {
+      fetchBlogs(true);
+    }, 100);
+  }, [fetchBlogs]);
+
+  const paginatedBlogs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedBlogs.slice(start, start + pageSize);
+  }, [sortedBlogs, currentPage]);
+
+  const totalPages = Math.ceil(sortedBlogs.length / pageSize) || 1;
 
   return {
     blogs,

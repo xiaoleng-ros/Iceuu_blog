@@ -78,8 +78,8 @@ export function useSocialSettings(
       } else {
         throw new Error('保存失败');
       }
-    } catch (error: any) {
-      setToast({ message: error.message, type: 'error' });
+    } catch (error) {
+      setToast({ message: error instanceof Error ? error.message : '保存失败', type: 'error' });
     } finally {
       setSaving(false);
     }

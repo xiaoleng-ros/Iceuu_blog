@@ -42,3 +42,16 @@ export function getFirstImageFromContent(content: string): string | null {
   if (htmlMatch && htmlMatch[1]) return htmlMatch[1];
   return null;
 }
+
+/**
+ * 格式化文件大小显示
+ * @param bytes - 文件字节数
+ * @returns string - 格式化后的字符串（如 1.25 MB）
+ */
+export function formatFileSize(bytes?: number) {
+  if (!bytes) return '未知大小';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}

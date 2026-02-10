@@ -43,7 +43,7 @@ async function getLatestPosts(page: number = 1, pageSize: number = 3): Promise<B
 /**
  * 获取站点全局配置
  * 从 site_config 表中读取键值对并转换为对象格式
- * @returns {Promise<Record<string, any>>} - 返回配置对象
+ * @returns {Promise<Record<string, string>>} - 返回配置对象
  */
 async function getSiteConfig() {
   try {
@@ -53,7 +53,7 @@ async function getSiteConfig() {
       return {};
     }
     if (!data) return {};
-    return data.reduce((acc: any, curr) => {
+    return data.reduce((acc: Record<string, string>, curr) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {});

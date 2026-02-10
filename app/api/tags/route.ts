@@ -41,8 +41,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ data });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error('创建标签异常:', e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

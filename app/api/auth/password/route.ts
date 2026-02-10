@@ -41,9 +41,10 @@ export async function GET(request: Request) {
       password: data?.value || '',
       success: true 
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '未知错误';
     console.error('获取密码异常:', err);
-    return NextResponse.json({ error: '数据获取异常: ' + (err.message || '未知错误') }, { status: 500 });
+    return NextResponse.json({ error: '数据获取异常: ' + message }, { status: 500 });
   }
 }
 
@@ -76,9 +77,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '当前密码和新密码不能为空' }, { status: 400 });
     }
 
+    if (!user.email) {
+      return NextResponse.json({ error: '用户邮箱不存在' }, { status: 400 });
+    }
+
     // 1. 验证旧密码是否正确
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
+      email: user.email,
       password: currentPassword,
     });
 
@@ -106,8 +111,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, message: '密码更新成功' });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '未知错误';
     console.error('更新密码异常:', err);
-    return NextResponse.json({ error: '更新密码异常: ' + (err.message || '未知错误') }, { status: 500 });
+    return NextResponse.json({ error: '更新密码异常: ' + message }, { status: 500 });
   }
 }

@@ -1,320 +1,194 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Edit, Trash2, Eye, Loader2, Search, ChevronLeft, ChevronRight, RotateCcw, XCircle } from 'lucide-react';
-import { cn, formatDate } from '@/lib/utils';
+import { Edit, Trash2, Eye } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 import { Toast, EmptyState } from '@/components/admin/pages/CommonComponents';
+import { useBlogManagement, Blog } from './hooks/useBlogManagement';
+import { BlogHeader } from './components/BlogHeader';
+import { BlogFilter } from './components/BlogFilter';
+import { BlogTable, ColumnConfig } from './components/BlogTable';
+import { BlogPagination } from './components/BlogPagination';
 
-// 动态导入重型组件，ssr: false 确保不进入服务端 Worker 压缩包
-const CustomDateRangePicker = dynamic(() => import('@/components/admin/pages/CustomDateRangePicker').then(mod => mod.CustomDateRangePicker), { ssr: false });
-const CustomSelect = dynamic(() => import('@/components/admin/pages/CustomSelect').then(mod => mod.CustomSelect), { ssr: false });
+/**
+ * 获取表格列定义
+ * @param onDelete - 删除操作回调
+ * @returns 列配置数组
+ */
+const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
+  {
+    key: 'id',
+    header: 'ID',
+    width: '80px',
+    render: (blog) => (
+      <span className="text-xs text-[#86909C] font-mono">
+        {blog.id.substring(0, 8)}...
+      </span>
+    )
+  },
+  {
+    key: 'title',
+    header: '标题',
+    render: (blog) => (
+      <span className="font-bold text-[#1D2129] whitespace-nowrap truncate block max-w-xs">
+        {blog.title}
+      </span>
+    )
+  },
+  {
+    key: 'excerpt',
+    header: '摘要',
+    render: (blog) => (
+      <span className="text-[#86909C] max-w-xs truncate text-xs block">
+        {blog.excerpt || '-'}
+      </span>
+    )
+  },
+  {
+    key: 'category',
+    header: '分类',
+    render: (blog) => blog.category ? (
+      <span className="bg-[#F2F3F5] text-[#4E5969] px-2.5 py-1 rounded-md text-xs font-medium">
+        {blog.category}
+      </span>
+    ) : '-'
+  },
+  {
+    key: 'tags',
+    header: '标签',
+    render: (blog) => (
+      <div className="flex flex-wrap gap-1.5">
+        {blog.tags && blog.tags.length > 0 ? (
+          blog.tags.map(tag => (
+            <span key={tag} className="text-[#165DFF] text-xs font-medium bg-[#165DFF]/5 px-2 py-0.5 rounded">#{tag}</span>
+          ))
+        ) : '-'}
+      </div>
+    )
+  },
+  {
+    key: 'views',
+    header: '浏览量',
+    align: 'center',
+    sortable: true,
+    render: (blog) => <span className="text-[#4E5969] font-medium">{blog.views || 0}</span>
+  },
+  {
+    key: 'comments_count',
+    header: '评论数量',
+    align: 'center',
+    sortable: true,
+    render: (blog) => <span className="text-[#4E5969] font-medium">{blog.comments_count || 0}</span>
+  },
+  {
+    key: 'status',
+    header: '状态',
+    align: 'center',
+    render: (blog) => (
+      <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 mx-auto w-fit ${
+        blog.draft ? 'bg-[#FFF7E8] text-[#FF7D00]' : 'bg-[#E8FFEA] text-[#00B42A]'
+      }`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${blog.draft ? 'bg-[#FF7D00]' : 'bg-[#00B42A]'}`} />
+        {blog.draft ? '草稿' : '已发布'}
+      </span>
+    )
+  },
+  {
+    key: 'created_at',
+    header: '发布时间',
+    align: 'center',
+    sortable: true,
+    render: (blog) => <span className="text-[#86909C] text-xs whitespace-nowrap">{formatDate(blog.created_at)}</span>
+  },
+  {
+    key: 'actions',
+    header: '操作',
+    align: 'right',
+    render: (blog) => (
+      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Link href={`/blog/${blog.id}`} target="_blank">
+          <Button variant="ghost" size="icon" title="预览" className="text-[#86909C] hover:text-[#165DFF] hover:bg-[#165DFF]/10 h-8 w-8 rounded-lg">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link href={`/admin/blogs/${blog.id}`}>
+          <Button variant="ghost" size="icon" title="编辑" className="text-[#86909C] hover:text-[#165DFF] hover:bg-[#165DFF]/10 h-8 w-8 rounded-lg">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          title="删除"
+          className="text-[#86909C] hover:text-[#F53F3F] hover:bg-[#F53F3F]/10 h-8 w-8 rounded-lg"
+          onClick={() => onDelete(blog.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    )
+  }
+];
 
-interface Blog {
-  id: string;
-  title: string;
-  excerpt: string;
-  category: string;
-  tags: string[];
-  created_at: string;
-  draft: boolean;
-  views?: number;
-  comments_count?: number;
-}
-
+/**
+ * 博客列表页面组件
+ * 展示已发布文章列表，提供筛选、排序、导出和删除功能
+ * @returns 页面渲染结果
+ */
 export default function BlogListPage() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const {
+    blogs,
+    setBlogs,
+    loading,
+    categories,
+    tags,
+    filters,
+    handleFilterChange,
+    handleReset: originalReset,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedBlogs,
+    handleSort,
+    sortConfigs,
+    fetchBlogs
+  } = useBlogManagement('published');
+
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
-  
-  // 删除确认对话框状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [blogIdToDelete, setBlogIdToDelete] = useState<string | null>(null);
-  
-  // Sorting states
-  type SortDirection = 'asc' | 'desc' | null;
-  interface SortConfig {
-    key: keyof Blog;
-    direction: SortDirection;
-  }
-  const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([{ key: 'id', direction: 'desc' }]);
-  
-  // Filter states
-  const [filterTitle, setFilterTitle] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState({ start: '', end: '' });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  // Debounce timer ref
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-  /**
-   * 处理博客列表排序
-   * @param key - 排序字段名，对应 Blog 对象的键
-   * @param multiSort - 是否开启多字段复合排序，默认为 false
-   * @returns void
-   */
-  const handleSort = (key: keyof Blog, multiSort = false) => {
-    setSortConfigs(prev => {
-      const existingConfig = prev.find(c => c.key === key);
-      
-      if (multiSort) {
-        // 多字段排序逻辑：如果已存在则切换方向，不存在则添加
-        if (existingConfig) {
-          const nextDir = existingConfig.direction === 'desc' ? 'asc' : 'desc';
-          return prev.map(c => c.key === key ? { ...c, direction: nextDir } : c);
-        } else {
-          return [...prev, { key, direction: 'desc' }];
-        }
-      } else {
-        // 单字段排序逻辑：清除其他排序，仅保留当前字段
-        if (existingConfig) {
-          const nextDir = existingConfig.direction === 'desc' ? 'asc' : 'desc';
-          return [{ key, direction: nextDir }];
-        } else {
-          return [{ key, direction: 'desc' }];
-        }
-      }
-    });
-  };
-
-  /**
-   * 根据当前排序配置 (sortConfigs) 对博客列表进行多字段排序
-   * @returns Blog[] - 排序后的博客数组
-   */
-  const sortedBlogs = useMemo(() => {
-    if (sortConfigs.length === 0) return blogs;
-
-    return [...blogs].sort((a, b) => {
-      for (const config of sortConfigs) {
-        const { key, direction } = config;
-        if (!direction) continue;
-
-        let valA: string | number = a[key] as string | number;
-        let valB: string | number = b[key] as string | number;
-
-        // 数字类型处理
-        if (key === 'views' || key === 'comments_count') {
-          valA = Number(valA) || 0;
-          valB = Number(valB) || 0;
-        } 
-        // 日期类型处理
-        else if (key === 'created_at') {
-          valA = new Date(valA).getTime();
-          valB = new Date(valB).getTime();
-        }
-        // 字符串/其他处理
-        else {
-          valA = String(valA || '').toLowerCase();
-          valB = String(valB || '').toLowerCase();
-        }
-
-        if (valA < valB) return direction === 'asc' ? -1 : 1;
-        if (valA > valB) return direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  }, [blogs, sortConfigs]);
-
-  /**
-   * 根据当前页码和每页条数，对排序后的博客列表进行切片分页
-   * @returns Blog[] - 当前页显示的博客数组
-   */
-  const paginatedBlogs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedBlogs.slice(start, start + pageSize);
-  }, [sortedBlogs, currentPage]);
-
-  const totalPages = Math.ceil(sortedBlogs.length / pageSize) || 1;
-
-  /**
-   * 渲染表格列的排序指示器组件
-   * @param columnKey - 当前列对应的 Blog 字段键名
-   * @returns JSX.Element - 包含上下箭头的排序图标组件
-   */
-  const SortIndicator = ({ columnKey }: { columnKey: keyof Blog }) => {
-    const config = sortConfigs.find(c => c.key === columnKey);
-    const orderIndex = sortConfigs.findIndex(c => c.key === columnKey);
-    
-    return (
-      <span className="inline-flex flex-col ml-2 align-middle gap-[2px] relative group/indicator">
-        <span className={cn(
-          "text-[9px] leading-none transition-colors duration-200 select-none",
-          config?.direction === 'asc' ? "text-[#165DFF] scale-110" : "text-[#C9CDD4] group-hover/indicator:text-[#86909C]"
-        )}>
-          ▲
-        </span>
-        <span className={cn(
-          "text-[9px] leading-none transition-colors duration-200 select-none",
-          config?.direction === 'desc' ? "text-[#165DFF] scale-110" : "text-[#C9CDD4] group-hover/indicator:text-[#86909C]"
-        )}>
-          ▼
-        </span>
-        {sortConfigs.length > 1 && orderIndex > -1 && (
-          <span className="absolute -right-3.5 top-1/2 -translate-y-1/2 text-[8px] text-[#165DFF] font-black bg-white rounded-full w-3 h-3 flex items-center justify-center border border-[#165DFF]/20 shadow-sm z-10">
-            {orderIndex + 1}
-          </span>
-        )}
-      </span>
-    );
-  };
-
-  /**
-   * 显示 Toast 提示信息
-   * @param message - 提示文本内容
-   * @param type - 提示类型：'success' | 'error' | 'info' | 'warning'，默认为 'info'
-   * @returns void
-   */
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
   /**
-   * 异步获取系统中的所有分类和标签
-   * @returns Promise<void>
-   */
-  const fetchFilters = useCallback(async () => {
-    try {
-      const { data: catData } = await supabase.from('categories').select('name');
-      const { data: tagData } = await supabase.from('tags').select('name');
-      setCategories(catData?.map(c => c.name) || []);
-      setTags(tagData?.map(t => t.name) || []);
-    } catch (_error) {
-      console.error('Error fetching filters:', _error);
-      showToast('获取筛选条件失败', 'error');
-    }
-  }, [showToast]);
-
-  /**
-   * 异步获取博客文章列表
-   * @param isInitial - 是否为初始加载，如果是则不提示“未找到内容”
-   * @returns Promise<void>
-   */
-  const fetchBlogs = useCallback(async (isInitial = false) => {
-    try {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      let url = `/api/blog?limit=100&status=published`;
-      if (filterCategory) url += `&category=${encodeURIComponent(filterCategory)}`;
-      if (filterTag) url += `&tag=${encodeURIComponent(filterTag)}`;
-      
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-      
-      const json = await res.json();
-      if (res.ok) {
-        let filteredData = json.data || [];
-        
-        // 标题筛选：支持模糊匹配
-        if (filterTitle) {
-          filteredData = filteredData.filter((b: Blog) => 
-            b.title.toLowerCase().includes(filterTitle.toLowerCase())
-          );
-        }
-
-        // 时间范围筛选
-        if (filterDateRange.start) {
-          filteredData = filteredData.filter((b: Blog) => 
-            new Date(b.created_at) >= new Date(filterDateRange.start)
-          );
-        }
-        if (filterDateRange.end) {
-          // 结束时间设为该天末尾
-          const endDate = new Date(filterDateRange.end);
-          endDate.setHours(23, 59, 59, 999);
-          filteredData = filteredData.filter((b: Blog) => 
-            new Date(b.created_at) <= endDate
-          );
-        }
-
-        setBlogs(filteredData);
-        if (!isInitial && filteredData.length === 0) {
-          showToast('未找到匹配内容', 'info');
-        }
-      } else {
-        showToast(json.error || '获取文章列表失败', 'error');
-      }
-    } catch (_error) {
-      console.error('Error fetching blogs:', _error);
-      showToast('网络请求失败，请稍后重试', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [filterCategory, filterTag, filterTitle, filterDateRange, showToast]);
-
-  useEffect(() => {
-    fetchFilters();
-    fetchBlogs(true);
-  }, [fetchFilters, fetchBlogs]);
-
-  /**
-   * 执行筛选操作（包含防抖逻辑）
+   * 处理搜索/筛选
    * @returns void
    */
-  const handleFilter = useCallback(() => {
-    // 1. 检查筛选条件是否为空
-    const hasValue = filterTitle.trim() !== '' || 
-                     filterCategory !== '' || 
-                     filterTag !== '' || 
-                     (filterDateRange.start !== '' || filterDateRange.end !== '');
+  const handleSearch = () => {
+    const hasValue = filters.title.trim() !== '' || 
+                     filters.category !== '' || 
+                     filters.tag !== '' || 
+                     (filters.dateRange.start !== '' || filters.dateRange.end !== '');
 
     if (!hasValue) {
       showToast('筛选条件不能为空', 'warning');
       return;
     }
-
-    // 2. 防抖处理
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    setCurrentPage(1); // 筛选时重置到第一页
-    debounceTimer.current = setTimeout(() => {
-      fetchBlogs();
-    }, 300);
-  }, [filterTitle, filterCategory, filterTag, filterDateRange, fetchBlogs, showToast]);
+    fetchBlogs();
+  };
 
   /**
-   * 重置所有筛选条件并重新加载数据
-   * @returns void
-   */
-  const handleReset = useCallback(() => {
-    setFilterTitle('');
-    setFilterCategory('');
-    setFilterTag('');
-    setFilterDateRange({ start: '', end: '' });
-    setCurrentPage(1); // 重置时回到第一页
-    
-    // 重置后重新获取全部数据
-    setLoading(true);
-    setTimeout(() => {
-      fetchBlogs(true);
-    }, 100);
-  }, [fetchBlogs]);
-
-  /**
-   * 将当前显示的博客列表导出为 CSV 文件
+   * 处理导出 CSV
    * @returns void
    */
   const handleExport = () => {
-    // Basic CSV export
     const headers = ['ID', '标题', '摘要', '分类', '标签', '创建时间', '状态'];
     const csvContent = [
       headers.join(','),
@@ -337,17 +211,17 @@ export default function BlogListPage() {
   };
 
   /**
-   * 触发删除确认对话框
-   * @param id - 要删除的文章 ID
-   * @returns Promise<void>
+   * 处理删除确认
+   * @param id - 文章 ID
+   * @returns void
    */
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     setBlogIdToDelete(id);
     setDeleteConfirmOpen(true);
   };
 
   /**
-   * 确认并执行异步删除博客文章操作
+   * 确认删除操作
    * @returns Promise<void>
    */
   const confirmDelete = async () => {
@@ -370,26 +244,24 @@ export default function BlogListPage() {
       } else {
         showToast('移动失败', 'error');
       }
-    } catch (_error) {
-      console.error('Delete error:', _error);
+    } catch (error) {
+      console.error('Delete error:', error);
       showToast('操作出错', 'error');
     } finally {
+      setDeleteConfirmOpen(false);
       setBlogIdToDelete(null);
     }
   };
 
+  /**
+   * 表格列定义
+   */
+  const columns = useMemo(() => getColumns(handleDelete), []);
+
   return (
     <div className="space-y-5 animate-in fade-in duration-700">
-      {/* Toast Notifications */}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
-
-      {/* 删除确认对话框 */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      
       <ConfirmDialog
         isOpen={deleteConfirmOpen}
         onClose={() => {
@@ -403,267 +275,39 @@ export default function BlogListPage() {
         variant="danger"
       />
       
-      <div className="bg-white p-5 rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#F2F3F5]">
-        <h1 className="text-2xl font-bold text-[#1D2129] tracking-tight">已发布文章</h1>
-        <p className="text-[#86909C] mt-1 text-sm">管理您的所有已发布文章内容</p>
+      <BlogHeader title="已发布文章" description="管理您的所有已发布文章内容" />
+
+      <BlogFilter 
+        filters={filters}
+        categories={categories}
+        tags={tags}
+        onFilterChange={handleFilterChange}
+        onReset={originalReset}
+        onSearch={handleSearch}
+        loading={loading}
+        showExport
+        onExport={handleExport}
+      />
+
+      <div className="bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#F2F3F5] overflow-hidden">
+        <BlogTable 
+          blogs={paginatedBlogs}
+          loading={loading}
+          columns={columns}
+          sortConfigs={sortConfigs}
+          onSort={handleSort}
+          selectedIds={selectedIds}
+          onSelect={(id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])}
+          onSelectAll={() => setSelectedIds(prev => prev.length === paginatedBlogs.length ? [] : paginatedBlogs.map(b => b.id))}
+          emptyState={<EmptyState message={loading ? "正在获取文章数据..." : "暂无数据"} />}
+        />
+        <BlogPagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={blogs.length}
+        />
       </div>
-
-      <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white relative z-20">
-        <CardContent className="p-5">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
-            <div className="flex items-center gap-2 w-full sm:w-[180px]">
-              <span className="text-[#4E5969] text-sm whitespace-nowrap min-w-[32px]">标题:</span>
-              <div className="relative w-full">
-                <Input 
-                  placeholder="请输入关键词" 
-                  className="h-8 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-[#165DFF]/10 transition-all text-xs rounded-lg w-full pr-7"
-                  value={filterTitle}
-                  onChange={(e) => setFilterTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                />
-                {filterTitle && (
-                  <button 
-                    onClick={() => setFilterTitle('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#C9CDD4] hover:text-[#86909C] transition-colors"
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <div className="w-full sm:w-[140px]">
-              <CustomSelect 
-                label="分类"
-                placeholder="请选择分类"
-                value={filterCategory}
-                onChange={setFilterCategory}
-                options={categories}
-              />
-            </div>
-            
-            <div className="w-full sm:w-[140px]">
-              <CustomSelect 
-                label="标签"
-                placeholder="请选择标签"
-                value={filterTag}
-                onChange={setFilterTag}
-                options={tags}
-              />
-            </div>
-            
-            <div className="w-full sm:w-[280px]">
-              <CustomDateRangePicker 
-                label="时间范围"
-                value={filterDateRange}
-                onChange={setFilterDateRange}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button 
-                className="bg-[#E8F3FF] text-[#165DFF] hover:bg-[#D1E9FF] h-8 px-4 border border-[#165DFF]/20 rounded-lg font-bold text-xs transition-all active:scale-95 shadow-none flex items-center gap-1.5"
-                onClick={handleFilter}
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                筛 选
-              </Button>
-              <Button 
-                variant="outline"
-                className="h-8 px-4 border-[#E5E6EB] text-[#4E5969] hover:bg-[#F2F3F5] hover:text-[#1D2129] rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-none text-xs whitespace-nowrap"
-                onClick={handleReset}
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                重置
-              </Button>
-            </div>
-
-            <div className="ml-auto flex items-center gap-3">
-              <Button 
-                className="bg-[#EFFFF0] text-[#00B42A] hover:bg-[#D1FFD6] h-8 px-4 border border-[#00B42A]/20 rounded-lg transition-all active:scale-95 shadow-none font-bold text-xs flex items-center justify-center whitespace-nowrap"
-                onClick={handleExport}
-              >
-                导出文章
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white relative overflow-hidden">
-        {/* Table Loading Overlay */}
-        {loading && blogs.length > 0 && (
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-30 flex items-center justify-center animate-in fade-in duration-300">
-            <div className="bg-white/80 p-4 rounded-2xl shadow-xl border border-[#F2F3F5] flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#165DFF]" />
-              <span className="text-sm font-medium text-[#4E5969]">正在筛选内容...</span>
-            </div>
-          </div>
-        )}
-        <CardContent className="p-0">
-          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#E5E6EB] scrollbar-track-transparent">
-            <table className="w-full text-sm text-left">
-              <thead className="text-[13px] text-[#4E5969] font-bold bg-[#F9FBFF]/50 border-b border-[#F2F3F5]">
-                <tr>
-                  <th scope="col" className="px-4 py-4 w-10">
-                    <input type="checkbox" className="rounded border-[#E5E6EB] text-[#165DFF] focus:ring-[#165DFF]/20" />
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-4 font-bold"
-                  >
-                    <div className="flex items-center relative">
-                      ID
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-4 font-bold">标题</th>
-                  <th scope="col" className="px-6 py-4 font-bold">摘要</th>
-                  <th scope="col" className="px-6 py-4 font-bold">分类</th>
-                  <th scope="col" className="px-6 py-4 font-bold">标签</th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-4 font-bold text-center cursor-pointer hover:bg-[#F2F3F5] transition-colors group/header"
-                    onClick={(e) => handleSort('views', e.shiftKey)}
-                  >
-                    <div className="flex items-center justify-center relative">
-                      浏览量
-                      <SortIndicator columnKey="views" />
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-4 font-bold text-center cursor-pointer hover:bg-[#F2F3F5] transition-colors group/header"
-                    onClick={(e) => handleSort('comments_count', e.shiftKey)}
-                  >
-                    <div className="flex items-center justify-center relative">
-                      评论数量
-                      <SortIndicator columnKey="comments_count" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-4 font-bold text-center">状态</th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-4 font-bold text-center cursor-pointer hover:bg-[#F2F3F5] transition-colors group/header"
-                    onClick={(e) => handleSort('created_at', e.shiftKey)}
-                  >
-                    <div className="flex items-center justify-center relative">
-                      发布时间
-                      <SortIndicator columnKey="created_at" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-4 font-bold text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F2F3F5]">
-                {paginatedBlogs.length > 0 ? (
-                  paginatedBlogs.map((blog) => (
-                    <tr key={blog.id} className="bg-white hover:bg-[#F9FBFF]/50 transition-colors group">
-                      <td className="px-4 py-4">
-                        <input type="checkbox" className="rounded border-[#E5E6EB] text-[#165DFF] focus:ring-[#165DFF]/20" />
-                      </td>
-                      <td className="px-6 py-4 text-xs text-[#86909C] font-mono truncate max-w-[80px]">
-                        {blog.id.substring(0, 8)}...
-                      </td>
-                      <td className="px-6 py-4 font-bold text-[#1D2129] whitespace-nowrap max-w-xs truncate">
-                        {blog.title}
-                      </td>
-                      <td className="px-6 py-4 text-[#86909C] max-w-xs truncate text-xs">
-                        {blog.excerpt || '-'}
-                      </td>
-                      <td className="px-6 py-4">
-                        {blog.category ? (
-                          <span className="bg-[#F2F3F5] text-[#4E5969] px-2.5 py-1 rounded-md text-xs font-medium">
-                            {blog.category}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1.5">
-                          {blog.tags && blog.tags.length > 0 ? (
-                            blog.tags.map(tag => (
-                              <span key={tag} className="text-[#165DFF] text-xs font-medium bg-[#165DFF]/5 px-2 py-0.5 rounded">#{tag}</span>
-                            ))
-                          ) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center text-[#4E5969] font-medium">
-                        {blog.views || 0}
-                      </td>
-                      <td className="px-6 py-4 text-center text-[#4E5969] font-medium">
-                        {blog.comments_count || 0}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 mx-auto w-fit ${
-                          blog.draft 
-                            ? 'bg-[#FFF7E8] text-[#FF7D00]' 
-                            : 'bg-[#E8FFEA] text-[#00B42A]'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${blog.draft ? 'bg-[#FF7D00]' : 'bg-[#00B42A]'}`} />
-                          {blog.draft ? '草稿' : '已发布'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center text-[#86909C] text-xs whitespace-nowrap">
-                        {formatDate(blog.created_at)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Link href={`/blog/${blog.id}`} target="_blank">
-                             <Button variant="ghost" size="icon" title="预览" className="text-[#86909C] hover:text-[#165DFF] hover:bg-[#165DFF]/10 h-8 w-8 rounded-lg">
-                               <Eye className="h-4 w-4" />
-                             </Button>
-                          </Link>
-                          <Link href={`/admin/blogs/${blog.id}`}>
-                            <Button variant="ghost" size="icon" title="编辑" className="text-[#86909C] hover:text-[#165DFF] hover:bg-[#165DFF]/10 h-8 w-8 rounded-lg">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            title="删除"
-                            className="text-[#86909C] hover:text-[#F53F3F] hover:bg-[#F53F3F]/10 h-8 w-8 rounded-lg"
-                            onClick={() => handleDelete(blog.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={11} className="p-0">
-                      <EmptyState message={loading ? "正在获取文章数据..." : "暂无数据"} />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination (简约风格) */}
-          <div className="px-6 py-6 flex items-center justify-center gap-8 border-t border-[#F2F3F5]">
-            <button 
-              className="text-[#C9CDD4] hover:text-[#86909C] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-[#1D2129] font-medium text-sm">
-              {currentPage} / {totalPages}
-            </span>
-            <button 
-              className="text-[#C9CDD4] hover:text-[#86909C] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

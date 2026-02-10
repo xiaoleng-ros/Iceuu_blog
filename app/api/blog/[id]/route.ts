@@ -76,9 +76,9 @@ export async function PUT(
     const allowedFields = [
       'title', 'content', 'excerpt', 'cover_image', 
       'category', 'tags', 'draft', 'images', 'is_deleted', 'deleted_at'
-    ];
+    ] as const;
     
-    const updateData: any = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
         updateData[field] = body[field];
@@ -98,9 +98,10 @@ export async function PUT(
     }
 
     return NextResponse.json({ data });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error(`更新文章异常 [ID: ${id}]:`, e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -145,9 +146,9 @@ export async function PATCH(
     const allowedFields = [
       'title', 'content', 'excerpt', 'cover_image', 
       'category', 'tags', 'draft', 'images', 'is_deleted', 'deleted_at'
-    ];
+    ] as const;
     
-    const updateData: any = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
         updateData[field] = body[field];
@@ -167,9 +168,10 @@ export async function PATCH(
     }
 
     return NextResponse.json({ data });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error(`部分更新文章异常 [ID: ${id}]:`, e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -244,8 +246,9 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error(`删除文章异常 [ID: ${id}]:`, e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

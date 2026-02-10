@@ -4,6 +4,55 @@ import { supabase, createClientWithToken } from '@/lib/supabase';
 export const runtime = 'edge';
 
 /**
+ * 构建博客列表查询基础对象
+ */
+function buildBaseQuery(supabaseClient: any, category: string | null, tag: string | null) {
+  let query = supabaseClient
+    .from('blogs')
+    .select('id, title, excerpt, cover_image, category, tags, created_at, draft', { count: 'exact' })
+    .order('created_at', { ascending: false });
+
+  if (category) query = query.eq('category', category);
+  if (tag) query = query.contains('tags', [tag]);
+  
+  return query;
+}
+
+/**
+ * 处理 GET 请求中的分页和元数据
+ */
+function getPaginationMeta(count: number | null, page: number, limit: number) {
+  return {
+    total: count || 0,
+    page,
+    limit,
+    totalPages: Math.ceil((count || 0) / limit),
+  };
+}
+
+/**
+ * 获取回收站中的博客
+ */
+async function getDeletedBlogs(supabaseClient: any, page: number, limit: number) {
+  try {
+    const { data, error, count } = await supabaseClient
+      .from('blogs')
+      .select('id, title, excerpt, cover_image, category, tags, created_at, draft, is_deleted, deleted_at', { count: 'exact' })
+      .eq('is_deleted', true)
+      .range((page - 1) * limit, page * limit - 1);
+    
+    if (error && error.message.includes('is_deleted')) {
+      return { data: [], count: 0, error: null };
+    }
+    
+    return { data, count, error };
+  } catch (e) {
+    console.error('获取已删除文章异常:', e);
+    return { data: [], count: 0, error: e };
+  }
+}
+
+/**
  * 处理获取博客列表的 GET 请求
  * 支持分页、分类筛选、标签筛选及状态筛选（已发布、草稿、回收站）
  * @param {Request} request - Request 对象，包含查询参数 (page, limit, category, tag, status)
@@ -19,106 +68,42 @@ export async function GET(request: Request) {
   
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
-  
-  // 如果有 token 则创建带身份的客户端，否则使用匿名客户端
   const requestSupabase = token ? createClientWithToken(token) : supabase;
 
-  let query = requestSupabase
-    .from('blogs')
-    .select('id, title, excerpt, cover_image, category, tags, created_at, draft', { count: 'exact' })
-    .order('created_at', { ascending: false });
-
-  if (category) query = query.eq('category', category);
-  if (tag) query = query.contains('tags', [tag]);
-
-  // 处理回收站（已逻辑删除）的文章
   if (status === 'deleted') {
-    try {
-      const { data, error, count } = await requestSupabase
-        .from('blogs')
-        .select('id, title, excerpt, cover_image, category, tags, created_at, draft, is_deleted, deleted_at', { count: 'exact' })
-        .eq('is_deleted', true)
-        .range((page - 1) * limit, page * limit - 1);
-      
-      // 兼容性检查：如果数据库中还没有 is_deleted 列
-      if (error && error.message.includes('is_deleted')) {
-        return NextResponse.json({ data: [], meta: { total: 0, page, limit, totalPages: 0 } });
-      }
-      
-      if (error) throw error;
-      
-      return NextResponse.json({
-        data,
-        meta: {
-          total: count,
-          page,
-          limit,
-          totalPages: Math.ceil((count || 0) / limit),
-        },
-      });
-    } catch (e) {
-      console.error('获取已删除文章异常:', e);
-      return NextResponse.json({ data: [], meta: { total: 0, page, limit, totalPages: 0 } });
-    }
-  } else {
-    // 排除已逻辑删除的文章
-    query = query.or('is_deleted.is.null,is_deleted.eq.false');
-    
-    if (status === 'draft') {
-      query = query.eq('draft', true);
-    } else if (status === 'published') {
-      query = query.eq('draft', false);
-    } else {
-      // 默认逻辑：未登录用户只能看到已发布的，登录管理员可以看到全部（非删除）
-      if (!token) {
-        query = query.eq('draft', false);
-      }
-    }
+    const { data, count, error } = await getDeletedBlogs(requestSupabase, page, limit);
+    if (error) return NextResponse.json({ error: (error as any).message }, { status: 500 });
+    return NextResponse.json({ data, meta: getPaginationMeta(count, page, limit) });
   }
 
-  query = query.range((page - 1) * limit, page * limit - 1);
+  let query = buildBaseQuery(requestSupabase, category, tag);
+  query = query.or('is_deleted.is.null,is_deleted.eq.false');
   
-  let { data, error, count } = await query;
-
-  // 兼容性降级：如果 is_deleted 列不存在，重试不带该过滤条件的查询
-  if (error && error.message.includes('is_deleted')) {
-    let retryQuery = requestSupabase
-      .from('blogs')
-      .select('id, title, excerpt, cover_image, category, tags, created_at, draft', { count: 'exact' })
-      .order('created_at', { ascending: false });
-
-    if (category) retryQuery = retryQuery.eq('category', category);
-    if (tag) retryQuery = retryQuery.contains('tags', [tag]);
-
-    if (status === 'draft') {
-      retryQuery = retryQuery.eq('draft', true);
-    } else if (status === 'published') {
-      retryQuery = retryQuery.eq('draft', false);
-    } else if (!token) {
-      retryQuery = retryQuery.eq('draft', false);
-    }
-
-    retryQuery = retryQuery.range((page - 1) * limit, page * limit - 1);
-    const retryResult = await retryQuery;
-    data = retryResult.data;
-    error = retryResult.error;
-    count = retryResult.count;
+  if (status === 'draft') {
+    query = query.eq('draft', true);
+  } else if (status === 'published') {
+    query = query.eq('draft', false);
+  } else if (!token) {
+    query = query.eq('draft', false);
   }
+
+  const { data, error, count } = await query.range((page - 1) * limit, page * limit - 1);
 
   if (error) {
-    console.error('获取文章列表失败:', error);
+    if (error.message.includes('is_deleted')) {
+      // 降级处理：重试不带 is_deleted 过滤的查询
+      let retryQuery = buildBaseQuery(requestSupabase, category, tag);
+      if (status === 'draft') retryQuery = retryQuery.eq('draft', true);
+      else if (status === 'published' || !token) retryQuery = retryQuery.eq('draft', false);
+      
+      const { data: rData, error: rError, count: rCount } = await retryQuery.range((page - 1) * limit, page * limit - 1);
+      if (rError) return NextResponse.json({ error: rError.message }, { status: 500 });
+      return NextResponse.json({ data: rData, meta: getPaginationMeta(rCount, page, limit) });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({
-    data,
-    meta: {
-      total: count,
-      page,
-      limit,
-      totalPages: Math.ceil((count || 0) / limit),
-    },
-  });
+  return NextResponse.json({ data, meta: getPaginationMeta(count, page, limit) });
 }
 
 /**
@@ -163,9 +148,9 @@ export async function POST(request: Request) {
     const allowedFields = [
       'title', 'content', 'excerpt', 'cover_image', 
       'category', 'tags', 'draft', 'images'
-    ];
+    ] as const;
     
-    const insertData: any = {};
+    const insertData: Record<string, unknown> = {};
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
         insertData[field] = body[field];
@@ -184,9 +169,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ data });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error('创建博客异常:', e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -235,9 +221,10 @@ export async function PATCH(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error('批量更新博客异常:', e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -297,8 +284,9 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '服务器内部错误';
     console.error('批量删除文章异常:', e);
-    return NextResponse.json({ error: e.message || '服务器内部错误' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -83,16 +83,14 @@ export async function DELETE(request: Request) {
 
     // 2. 从 GitHub 同步删除文件
     if (mediaFiles && mediaFiles.length > 0) {
-      for (const file of mediaFiles) {
-        if (file.path) {
-          try {
-            await deleteFileFromGitHub(file.path, `Delete media: ${file.path}`);
-          } catch (ghError) {
-            console.error(`Failed to delete file from GitHub: ${file.path}`, ghError);
-            // 这里我们选择记录错误但继续删除数据库记录，或者根据需求决定是否中断
-          }
+      await Promise.all(mediaFiles.map(async (file) => {
+        if (!file.path) return;
+        try {
+          await deleteFileFromGitHub(file.path, `Delete media: ${file.path}`);
+        } catch (ghError) {
+          console.error(`Failed to delete file from GitHub: ${file.path}`, ghError);
         }
-      }
+      }));
     }
 
     // 3. 从数据库删除记录

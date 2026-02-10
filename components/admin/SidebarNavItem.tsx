@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
 
 interface NavItemChild {
   label: string;
@@ -15,7 +14,7 @@ interface SidebarNavItemProps {
   label: string;
   href?: string;
   icon: LucideIcon;
-  children?: NavItemChild[];
+  subItems?: NavItemChild[];
   pathname: string;
   openMenus: string[];
   toggleMenu: (label: string) => void;
@@ -28,15 +27,15 @@ export function SidebarNavItem({
   label,
   href,
   icon: Icon,
-  children,
+  subItems,
   pathname,
   openMenus,
   toggleMenu
 }: SidebarNavItemProps) {
-  const hasChildren = children && children.length > 0;
+  const hasChildren = subItems && subItems.length > 0;
   const isMenuOpen = openMenus.includes(label);
   const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false;
-  const isChildActive = hasChildren && children?.some(child => pathname === child.href);
+  const isChildActive = hasChildren && subItems?.some(child => pathname === child.href);
 
   if (hasChildren) {
     return (
@@ -68,7 +67,7 @@ export function SidebarNavItem({
         
         {isMenuOpen && (
           <div className="pl-6 space-y-1 animate-in slide-in-from-top-2 duration-200">
-            {children.map((child) => {
+            {subItems.map((child) => {
               const isSubActive = pathname === child.href;
               const ChildIcon = child.icon;
               return (

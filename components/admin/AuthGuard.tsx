@@ -52,7 +52,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, pathname]);
 
   if (loading) {
     return (

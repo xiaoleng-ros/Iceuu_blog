@@ -34,13 +34,13 @@ async function getCategoryPosts(category: string, page: number = 1, pageSize: nu
 
 /**
  * 从数据库获取全站配置信息
- * @returns {Promise<Record<string, any>>} - 返回键值对形式的配置对象
+ * @returns {Promise<Record<string, string>>} - 返回键值对形式的配置对象
  */
 async function getSiteConfig() {
   try {
     const { data } = await supabase.from('site_config').select('*');
     if (!data) return {};
-    return data.reduce((acc: any, curr) => {
+    return data.reduce((acc: Record<string, string>, curr) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {});

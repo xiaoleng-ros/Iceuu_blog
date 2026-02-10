@@ -16,19 +16,20 @@ export interface FormErrors {
   content?: boolean;
 }
 
+export interface BlogInitialData extends Partial<FormData> {
+  id?: string;
+}
+
 interface UseBlogFormProps {
-  initialData?: any;
+  initialData?: BlogInitialData;
   isEditing: boolean;
   categories: string[];
 }
 
 /**
- * 博客表单逻辑 Hook
- * 处理表单数据初始化、自动保存、图片上传和提交逻辑
- * @param {UseBlogFormProps} props - Hook 参数
- * @returns {Object} 表单状态和处理函数
+ * 管理表单基础状态的 Hook
  */
-export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormProps) {
+function useBlogFormState(categories: string[]) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
@@ -37,7 +38,7 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
   const [formData, setFormData] = useState<FormData>({
     title: '',
     content: '',
-    category: '',
+    category: categories[0] || '',
     cover_image: '',
     draft: true,
   });
@@ -46,6 +47,25 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
     setToast({ message, type });
   }, []);
 
+  return {
+    loading, setLoading,
+    uploading, setUploading,
+    toast, setToast, showToast,
+    errors, setErrors,
+    formData, setFormData
+  };
+}
+
+/**
+ * 管理草稿存储逻辑的 Hook
+ */
+function useBlogFormStorage(
+  isEditing: boolean, 
+  initialData: BlogInitialData | undefined, 
+  formData: FormData, 
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>,
+  categories: string[]
+) {
   const STORAGE_KEY = useMemo(() => isEditing ? `blog_edit_${initialData?.id}` : 'blog_new_draft', [isEditing, initialData?.id]);
 
   // 初始化数据
@@ -76,7 +96,7 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
         setFormData(prev => ({ ...prev, category: categories[0] || '' }));
       }
     }
-  }, [initialData, STORAGE_KEY, categories]);
+  }, [initialData, STORAGE_KEY, categories, setFormData]);
 
   // 自动保存
   useEffect(() => {
@@ -89,6 +109,23 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
     localStorage.removeItem(STORAGE_KEY);
   }, [STORAGE_KEY]);
 
+  return { clearStorage };
+}
+
+/**
+ * 管理文件上传逻辑的 Hook
+ */
+function useBlogFormUpload({
+  setFormData,
+  showToast,
+  setUploading,
+  initialData
+}: {
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  setUploading: (uploading: boolean) => void;
+  initialData?: BlogInitialData;
+}) {
   const handleImageUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       showToast('图片大小不能超过 5MB', 'warning');
@@ -103,18 +140,14 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
         return;
       }
 
-      const formDataUpload = new FormData();
+      const formDataUpload = new globalThis.FormData();
       formDataUpload.append('file', file);
       formDataUpload.append('type', 'post');
-      if (initialData?.id) {
-        formDataUpload.append('contextId', initialData.id);
-      }
+      if (initialData?.id) formDataUpload.append('contextId', initialData.id);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        },
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
         body: formDataUpload
       });
 
@@ -128,13 +161,35 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
       showToast('图片上传成功', 'success');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '图片上传失败';
-      console.error('上传封面图失败:', error);
       showToast(message, 'error');
     } finally {
       setUploading(false);
     }
   };
 
+  return { handleImageUpload };
+}
+
+/**
+ * 管理表单提交逻辑的 Hook
+ */
+function useBlogFormSubmit({
+  formData,
+  showToast,
+  setErrors,
+  setLoading,
+  clearStorage,
+  isEditing,
+  initialData
+}: {
+  formData: FormData;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  setErrors: React.Dispatch<React.SetStateAction<FormErrors>>;
+  setLoading: (loading: boolean) => void;
+  clearStorage: () => void;
+  isEditing: boolean;
+  initialData?: BlogInitialData;
+}) {
   const submitBlog = async (isDraft: boolean) => {
     const titleTrimmed = formData.title.trim();
     const contentPlain = formData.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -167,34 +222,25 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
         return false;
       }
 
-      const payload = {
-        ...formData,
-        draft: isDraft,
-      };
-
-      const url = isEditing ? `/api/blog/${initialData.id}` : '/api/blog';
-      const method = isEditing ? 'PUT' : 'POST';
-
+      const url = isEditing ? `/api/blog/${initialData?.id}` : '/api/blog';
       const res = await fetch(url, {
-        method,
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...formData, draft: isDraft }),
       });
 
       if (res.ok) {
         clearStorage();
         showToast(isDraft ? '草稿保存成功' : (isEditing ? '文章更新成功' : '文章发布成功'), 'success');
         return true;
-      } else {
-        const json = await res.json();
-        showToast(`操作失败: ${json.error}`, 'error');
-        return false;
       }
-    } catch (error: unknown) {
-      console.error('提交文章异常:', error);
+      const json = await res.json();
+      showToast(`操作失败: ${json.error}`, 'error');
+      return false;
+    } catch (_error: unknown) {
       showToast('网络请求异常，请稍后重试', 'error');
       return false;
     } finally {
@@ -202,16 +248,48 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
     }
   };
 
-  return {
-    formData,
+  return { submitBlog };
+}
+
+/**
+ * 博客表单逻辑 Hook
+ * 处理表单数据初始化、自动保存、图片上传和提交逻辑
+ * @param {UseBlogFormProps} props - Hook 参数
+ * @returns {Object} 表单状态和处理函数
+ */
+export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormProps) {
+  const {
+    loading, setLoading,
+    uploading, setUploading,
+    toast, setToast, showToast,
+    errors, setErrors,
+    formData, setFormData
+  } = useBlogFormState(categories);
+
+  const { clearStorage } = useBlogFormStorage(isEditing, initialData, formData, setFormData, categories);
+
+  const { handleImageUpload } = useBlogFormUpload({
     setFormData,
-    loading,
-    uploading,
-    toast,
-    setToast,
-    errors,
+    showToast,
+    setUploading,
+    initialData
+  });
+
+  const { submitBlog } = useBlogFormSubmit({
+    formData,
+    showToast,
     setErrors,
-    handleImageUpload,
-    submitBlog
+    setLoading,
+    clearStorage,
+    isEditing,
+    initialData
+  });
+
+  return {
+    formData, setFormData,
+    loading, uploading,
+    toast, setToast,
+    errors, setErrors,
+    handleImageUpload, submitBlog
   };
 }

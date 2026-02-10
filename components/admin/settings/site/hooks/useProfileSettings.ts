@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useSiteStore } from '@/lib/store/useSiteStore';
@@ -31,18 +31,6 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (storeUser) {
-      setProfileData(prev => ({
-        ...prev,
-        fullName: storeUser.fullName || '',
-        email: storeUser.email || '',
-        bio: storeUser.bio || '',
-        avatarUrl: storeUser.avatarUrl || '',
-      }));
-    }
-  }, [storeUser]);
-
-  useEffect(() => {
     const fetchUser = async () => {
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -54,7 +42,7 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
               fullName: authUser.user_metadata?.full_name || '',
               email: authUser.email || '',
               bio: authUser.user_metadata?.bio || '',
-              avatarUrl: authUser.user_metadata?.avatar_url || '',
+              avatar_url: authUser.user_metadata?.avatar_url || '',
             }));
           }
         }
@@ -65,6 +53,31 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
     fetchUser();
   }, [storeUser]);
 
+  /**
+   * 同步用户信息
+   * @param {any} storeUser - 仓库中的用户信息
+   */
+  const syncUserData = useCallback((storeUser: any) => {
+    if (storeUser) {
+      setProfileData(prev => ({
+        ...prev,
+        fullName: storeUser.fullName || '',
+        email: storeUser.email || '',
+        bio: storeUser.bio || '',
+        avatarUrl: storeUser.avatarUrl || '',
+        site_start_date: storeUser.site_start_date || '',
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    syncUserData(storeUser);
+  }, [storeUser]);
+
+  /**
+   * 处理表单字段变更
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e - 事件对象
+   */
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfileData(prev => ({ ...prev, [name]: value || '' }));
@@ -77,6 +90,10 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
     }
   };
 
+  /**
+   * 处理头像上传
+   * @param {React.ChangeEvent<HTMLInputElement>} e - 事件对象
+   */
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -108,19 +125,48 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
       } else {
         throw new Error(json.error);
       }
-    } catch (error: any) {
-      setToast({ message: '上传失败: ' + error.message, type: 'error' });
+    } catch (error) {
+      setToast({ message: '上传失败: ' + (error instanceof Error ? error.message : '未知错误'), type: 'error' });
     } finally {
       setUploadingAvatar(false);
     }
   };
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * 验证表单数据
+   * @returns {Record<string, string>} - 错误信息对象
+   */
+  const validateProfileForm = () => {
     const errors: Record<string, string> = {};
     if (!profileData.fullName.trim()) errors.fullName = '名称不能为空';
     if (!profileData.email.trim()) errors.email = '邮箱不能为空';
     if (!profileData.bio.trim()) errors.bio = '介绍不能为空';
+    return errors;
+  };
+
+  /**
+   * 更新站点配置到数据库
+   */
+  const updateSiteConfigs = async () => {
+    const configUpdates = [
+      { key: 'site_name', value: profileData.fullName },
+      { key: 'avatar_url', value: profileData.avatarUrl },
+      { key: 'intro', value: profileData.bio },
+      { key: 'site_start_date', value: profileData.site_start_date }
+    ];
+
+    for (const item of configUpdates) {
+      await supabase.from('site_config').upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
+    }
+  };
+
+  /**
+   * 处理保存个人资料
+   * @param {React.FormEvent} e - 事件对象
+   */
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors = validateProfileForm();
     
     if (Object.keys(errors).length > 0) {
       setProfileErrors(errors);
@@ -140,18 +186,9 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
 
       if (error) throw error;
 
-      const configUpdates = [
-        { key: 'site_name', value: profileData.fullName },
-        { key: 'avatar_url', value: profileData.avatarUrl },
-        { key: 'intro', value: profileData.bio },
-        { key: 'site_start_date', value: profileData.site_start_date }
-      ];
-
-      for (const item of configUpdates) {
-        await supabase.from('site_config').upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
-      }
-
+      await updateSiteConfigs();
       await supabase.auth.refreshSession();
+      
       updateUserInStore({
         fullName: profileData.fullName,
         avatarUrl: profileData.avatarUrl,
@@ -166,8 +203,8 @@ export function useProfileSettings(setToast: (data: ToastData | null) => void) {
         message: profileData.email !== user?.email ? '个人信息已保存，请查收新邮箱确认邮件。' : '个人信息已成功保存', 
         type: 'success' 
       });
-    } catch (error: any) {
-      setToast({ message: '保存失败: ' + error.message, type: 'error' });
+    } catch (error) {
+      setToast({ message: '保存失败: ' + (error instanceof Error ? error.message : '未知错误'), type: 'error' });
     } finally {
       setProfileSaving(false);
     }
