@@ -105,6 +105,17 @@ npm run dev
 
 ---
 
+## ❤️ 特别鸣谢
+
+本项目的前台界面设计灵感与风格参考了以下优秀开源项目：
+
+- **宇阳 (Liu Yuyang)**: [liuyuyang.net](https://liuyuyang.net/)
+- **ThriveX-Blog**: [LiuYuYang01/ThriveX-Blog](https://github.com/LiuYuYang01/ThriveX-Blog)
+
+感谢作者的开源精神，为本项目提供了极佳的设计参考。
+
+---
+
 ## 📄 许可证
 
 基于 [MIT License](./LICENSE) 开源。
