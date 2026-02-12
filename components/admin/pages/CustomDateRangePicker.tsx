@@ -81,46 +81,80 @@ const CalendarMonth = ({ monthDate, value, onDateClick }: CalendarMonthProps) =>
 };
 
 /**
- * 自定义日期范围选择器组件
- * @param {Object} props - 组件参数
- * @param {Object} props.value - 当前选中的日期范围 { start: string, end: string }
- * @param {Function} props.onChange - 日期变化时的回调函数
- * @param {string} props.label - 显示的标签文本
- * @returns {JSX.Element} - 返回日期范围选择器 JSX 结构
+ * 日历导航组件
  */
-export const CustomDateRangePicker = ({
-  value,
-  onChange,
-  label
-}: {
-  value: { start: string; end: string };
-  onChange: (val: { start: string; end: string }) => void;
+function CalendarNavigation({ 
+  currentMonth, 
+  onMonthChange 
+}: { 
+  currentMonth: Date; 
+  onMonthChange: (month: Date) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-b border-[#F2F3F5]">
+      <div className="flex gap-1">
+        <button type="button" onClick={() => onMonthChange(subMonths(currentMonth, 12))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
+          <ChevronsLeft className="w-4 h-4" />
+        </button>
+        <button type="button" onClick={() => onMonthChange(subMonths(currentMonth, 1))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="flex gap-1">
+        <button type="button" onClick={() => onMonthChange(addMonths(currentMonth, 1))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <button type="button" onClick={() => onMonthChange(addMonths(currentMonth, 12))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
+          <ChevronsRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 日历底部按钮组件
+ */
+function CalendarFooter({ 
+  onReset, 
+  onConfirm 
+}: { 
+  onReset: () => void; 
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="p-3 border-t border-[#F2F3F5] flex justify-end gap-2 bg-[#F9FBFF]/50">
+      <Button variant="outline" className="h-8 px-4 text-xs" onClick={onReset}>
+        重 置
+      </Button>
+      <Button className="h-8 px-4 text-xs bg-[#165DFF] hover:bg-[#0E42D2] text-white" onClick={onConfirm}>
+        确 定
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * 日期范围选择器按钮组件
+ */
+function DateRangePickerButton({ 
+  value, 
+  label, 
+  onClick, 
+  isOpen 
+}: { 
+  value: { start: string; end: string }; 
   label: string;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1)); // 默认显示2026年1月
-
-  const handleDateClick = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    if (!value.start || (value.start && value.end)) {
-      onChange({ start: dateStr, end: '' });
-    } else {
-      if (isBefore(date, parseISO(value.start))) {
-        onChange({ start: dateStr, end: '' });
-      } else {
-        onChange({ ...value, end: dateStr });
-        setIsOpen(false);
-      }
-    }
-  };
-
+  onClick: () => void;
+  isOpen: boolean;
+}) {
   return (
     <div className="flex items-center gap-2 relative w-full">
       <span className="text-[#4E5969] text-sm whitespace-nowrap min-w-[56px]">{label}:</span>
       <div className="relative w-full">
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={onClick}
           className={cn(
             "w-full h-8 rounded-lg border px-3 text-xs flex items-center justify-between transition-all bg-white",
             isOpen ? "border-[#165DFF] ring-1 ring-[#165DFF]" : "border-[#E5E6EB] hover:border-[#C9CDD4]"
@@ -137,55 +171,99 @@ export const CustomDateRangePicker = ({
           </div>
           <Calendar className="w-3.5 h-3.5 text-[#C9CDD4] ml-2 shrink-0" />
         </button>
-
-        {isOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <div className="absolute top-full right-0 mt-2 bg-white border border-[#F2F3F5] rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden flex flex-col min-w-[600px]">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#F2F3F5]">
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 12))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
-                  <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 12))} className="p-1 hover:bg-[#F2F3F5] rounded text-[#86909C]">
-                    <ChevronsRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex divide-x divide-[#F2F3F5]">
-                <CalendarMonth monthDate={currentMonth} value={value} onDateClick={handleDateClick} />
-                <CalendarMonth monthDate={addMonths(currentMonth, 1)} value={value} onDateClick={handleDateClick} />
-              </div>
-              <div className="p-3 border-t border-[#F2F3F5] flex justify-end gap-2 bg-[#F9FBFF]/50">
-                <Button 
-                  variant="outline" 
-                  className="h-8 px-4 text-xs"
-                  onClick={() => {
-                    onChange({ start: '', end: '' });
-                    setIsOpen(false);
-                  }}
-                >
-                  重 置
-                </Button>
-                <Button 
-                  className="h-8 px-4 text-xs bg-[#165DFF] hover:bg-[#0E42D2] text-white"
-                  onClick={() => setIsOpen(false)}
-                >
-                  确 定
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * 日期范围选择器弹出层组件
+ */
+function DateRangePickerPopover({ 
+  value, 
+  currentMonth, 
+  onMonthChange, 
+  onDateClick, 
+  onReset, 
+  onConfirm, 
+  onClose 
+}: { 
+  value: { start: string; end: string }; 
+  currentMonth: Date;
+  onMonthChange: (month: Date) => void;
+  onDateClick: (date: Date) => void;
+  onReset: () => void;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute top-full right-0 mt-2 bg-white border border-[#F2F3F5] rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden flex flex-col min-w-[600px]">
+        <CalendarNavigation currentMonth={currentMonth} onMonthChange={onMonthChange} />
+        <div className="flex divide-x divide-[#F2F3F5]">
+          <CalendarMonth monthDate={currentMonth} value={value} onDateClick={onDateClick} />
+          <CalendarMonth monthDate={addMonths(currentMonth, 1)} value={value} onDateClick={onDateClick} />
+        </div>
+        <CalendarFooter onReset={onReset} onConfirm={onConfirm} />
+      </div>
+    </>
+  );
+}
+
+/**
+ * 自定义日期范围选择器组件
+ */
+export const CustomDateRangePicker = ({
+  value,
+  onChange,
+  label
+}: {
+  value: { start: string; end: string };
+  onChange: (val: { start: string; end: string }) => void;
+  label: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1));
+
+  const handleDateClick = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    if (!value.start || (value.start && value.end)) {
+      onChange({ start: dateStr, end: '' });
+    } else {
+      if (isBefore(date, parseISO(value.start))) {
+        onChange({ start: dateStr, end: '' });
+      } else {
+        onChange({ ...value, end: dateStr });
+        setIsOpen(false);
+      }
+    }
+  };
+
+  const handleReset = () => {
+    onChange({ start: '', end: '' });
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative w-full">
+      <DateRangePickerButton
+        value={value}
+        label={label}
+        onClick={() => setIsOpen(!isOpen)}
+        isOpen={isOpen}
+      />
+      {isOpen && (
+        <DateRangePickerPopover
+          value={value}
+          currentMonth={currentMonth}
+          onMonthChange={setCurrentMonth}
+          onDateClick={handleDateClick}
+          onReset={handleReset}
+          onConfirm={() => setIsOpen(false)}
+          onClose={() => setIsOpen(false)}
+        />
+      )}
     </div>
   );
 };

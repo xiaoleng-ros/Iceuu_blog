@@ -43,7 +43,7 @@ export interface SiteConfig {
 /**
  * 用户信息接口
  */
-interface UserInfo {
+export interface UserInfo {
   /** 用户全名 */
   fullName: string;
   /** 头像 URL */
@@ -52,6 +52,8 @@ interface UserInfo {
   email: string;
   /** 个人介绍 */
   bio: string;
+  /** 建站日期 */
+  site_start_date?: string;
 }
 
 /**

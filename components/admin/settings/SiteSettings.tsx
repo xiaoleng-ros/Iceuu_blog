@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Save, Loader2, CheckCircle2, XCircle, AlertCircle, FileText, Upload, Link as LinkIcon, Image as ImageIcon, Trash2, UserCircle, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSiteStore } from '@/lib/store/useSiteStore';
+import { useProfileLogic, useSiteConfigLogic } from './hooks';
 
 /**
  * Toast 提示组件
@@ -61,6 +59,114 @@ const Toast = ({
 };
 
 /**
+ * 背景图预览组件（有图时显示）
+ */
+function BackgroundPreview({
+  url,
+  uploading,
+  fileInputRef,
+  onRemove,
+  onViewOriginal
+}: {
+  url: string;
+  uploading: boolean;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onRemove: () => void;
+  onViewOriginal: () => void;
+}) {
+  return (
+    <>
+      <Image 
+        src={url} 
+        alt="Background Preview" 
+        fill
+        className={cn(
+          "object-cover transition-all duration-500",
+          uploading ? 'opacity-30 blur-sm' : 'group-hover:scale-105'
+        )}
+        unoptimized
+      />
+      <div className={cn(
+        "absolute inset-0 bg-black/40 transition-opacity flex items-center justify-center gap-3",
+        uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+      )}>
+        {uploading ? (
+          <div className="flex flex-col items-center gap-2 text-white">
+            <Loader2 className="h-8 w-8 animate-spin text-[#165DFF]" />
+            <span className="text-sm font-medium">正在上传...</span>
+          </div>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-lg h-9 px-4"
+              onClick={onViewOriginal}
+            >
+              查看原图
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="bg-white text-[#1D2129] border-none hover:bg-gray-100 rounded-lg h-9 px-4 flex items-center gap-2"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4" />
+              更换图片
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="bg-red-500/90 border-none text-white hover:bg-red-600 rounded-lg h-9 px-4 flex items-center gap-2"
+              onClick={onRemove}
+            >
+              <Trash2 className="h-4 w-4" />
+              移除
+            </Button>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * 背景图空状态组件（无图时显示）
+ */
+function BackgroundEmptyState({
+  uploading,
+  fileInputRef
+}: {
+  uploading: boolean;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  return (
+    <div 
+      className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+      onClick={() => !uploading && fileInputRef.current?.click()}
+    >
+      {uploading ? (
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-10 w-10 animate-spin text-[#165DFF]" />
+          <span className="text-sm font-medium text-[#165DFF]">正在上传并应用...</span>
+        </div>
+      ) : (
+        <>
+          <div className="w-16 h-16 rounded-full bg-[#F2F3F5] flex items-center justify-center mb-3 group-hover:bg-[#165DFF]/10 transition-colors">
+            <Upload className="h-8 w-8 text-[#86909C] group-hover:text-[#165DFF] transition-colors" />
+          </div>
+          <span className="text-sm font-bold text-[#4E5969]">点击上传本地图片</span>
+          <span className="text-xs text-[#86909C] mt-1 text-center px-6">未设置背景图，将使用系统默认图</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
  * 背景图上传与预览组件
  */
 function BackgroundUploader({
@@ -86,81 +192,15 @@ function BackgroundUploader({
       )}
     >
       {url ? (
-        <>
-          <Image 
-            src={url} 
-            alt="Background Preview" 
-            fill
-            className={cn(
-              "object-cover transition-all duration-500",
-              uploading ? 'opacity-30 blur-sm' : 'group-hover:scale-105'
-            )}
-            unoptimized
-          />
-          <div className={cn(
-            "absolute inset-0 bg-black/40 transition-opacity flex items-center justify-center gap-3",
-            uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          )}>
-            {uploading ? (
-              <div className="flex flex-col items-center gap-2 text-white">
-                <Loader2 className="h-8 w-8 animate-spin text-[#165DFF]" />
-                <span className="text-sm font-medium">正在上传...</span>
-              </div>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-lg h-9 px-4"
-                  onClick={onViewOriginal}
-                >
-                  查看原图
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="bg-white text-[#1D2129] border-none hover:bg-gray-100 rounded-lg h-9 px-4 flex items-center gap-2"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  更换图片
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="bg-red-500/90 border-none text-white hover:bg-red-600 rounded-lg h-9 px-4 flex items-center gap-2"
-                  onClick={onRemove}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  移除
-                </Button>
-              </>
-            )}
-          </div>
-        </>
+        <BackgroundPreview
+          url={url}
+          uploading={uploading}
+          fileInputRef={fileInputRef}
+          onRemove={onRemove}
+          onViewOriginal={onViewOriginal}
+        />
       ) : (
-        <div 
-          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-          onClick={() => !uploading && fileInputRef.current?.click()}
-        >
-          {uploading ? (
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-10 w-10 animate-spin text-[#165DFF]" />
-              <span className="text-sm font-medium text-[#165DFF]">正在上传并应用...</span>
-            </div>
-          ) : (
-            <>
-              <div className="w-16 h-16 rounded-full bg-[#F2F3F5] flex items-center justify-center mb-3 group-hover:bg-[#165DFF]/10 transition-colors">
-                <Upload className="h-8 w-8 text-[#86909C] group-hover:text-[#165DFF] transition-colors" />
-              </div>
-              <span className="text-sm font-bold text-[#4E5969]">点击上传本地图片</span>
-              <span className="text-xs text-[#86909C] mt-1 text-center px-6">未设置背景图，将使用系统默认图</span>
-            </>
-          )}
-        </div>
+        <BackgroundEmptyState uploading={uploading} fileInputRef={fileInputRef} />
       )}
       <input
         ref={fileInputRef}
@@ -679,373 +719,6 @@ function SiteHeader({
       </Button>
     </div>
   );
-}
-
-/**
- * 个人资料逻辑 Hook
- */
-function useProfileLogic(setToast: (toast: { message: string; type: 'success' | 'error' | 'info' | 'warning' } | null) => void) {
-  const storeUser = useSiteStore((state) => state.user);
-  const updateUserInStore = useSiteStore((state) => state.updateUser);
-  
-  const [user, setUser] = useState<User | null>(null);
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [profileData, setProfileData] = useState({
-    fullName: '',
-    email: '',
-    bio: '',
-    avatarUrl: '',
-    site_start_date: '',
-  });
-  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
-  const profileFileInputRef = useRef<HTMLInputElement>(null);
-
-  // 使用 Store 中的用户信息初始化表单
-  useEffect(() => {
-    if (storeUser) {
-      setProfileData(prev => ({
-        ...prev,
-        fullName: storeUser.fullName || '',
-        email: storeUser.email || '',
-        bio: storeUser.bio || '',
-        avatarUrl: storeUser.avatarUrl || '',
-      }));
-    }
-  }, [storeUser]);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUser(user);
-          if (!storeUser) {
-            setProfileData(prev => ({
-              ...prev,
-              fullName: user.user_metadata?.full_name || '',
-              email: user.email || '',
-              bio: user.user_metadata?.bio || '',
-              avatarUrl: user.user_metadata?.avatar_url || '',
-            }));
-          }
-        }
-      } catch (_error) {
-        console.error('Failed to fetch user:', _error);
-      }
-    };
-    fetchUser();
-  }, [storeUser]);
-
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value || '' }));
-    if (profileErrors[name]) {
-      setProfileErrors(prev => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-  };
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setToast({ message: '图片大小不能超过 2MB', type: 'error' });
-      return;
-    }
-
-    try {
-      setUploadingAvatar(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('type', 'avatar');
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: uploadFormData,
-      });
-
-      const json = await res.json();
-      if (res.ok) {
-        setProfileData(prev => ({ ...prev, avatarUrl: json.data.url }));
-        setToast({ message: '头像上传成功', type: 'success' });
-      } else {
-        setToast({ message: '上传失败: ' + json.error, type: 'error' });
-      }
-    } catch (_error) {
-      console.error('Upload error:', _error);
-      setToast({ message: '上传出错', type: 'error' });
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors: Record<string, string> = {};
-    if (!profileData.fullName.trim()) errors.fullName = '名称不能为空';
-    if (!profileData.email.trim()) errors.email = '邮箱不能为空';
-    if (!profileData.bio.trim()) errors.bio = '介绍不能为空';
-    
-    if (Object.keys(errors).length > 0) {
-      setProfileErrors(errors);
-      return;
-    }
-
-    setProfileSaving(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        email: profileData.email !== user?.email ? profileData.email : undefined,
-        data: {
-          full_name: profileData.fullName,
-          bio: profileData.bio,
-          avatar_url: profileData.avatarUrl,
-        },
-      });
-
-      if (error) throw error;
-
-      const configUpdates = [
-        { key: 'site_name', value: profileData.fullName },
-        { key: 'avatar_url', value: profileData.avatarUrl },
-        { key: 'intro', value: profileData.bio },
-        { key: 'site_start_date', value: profileData.site_start_date }
-      ];
-
-      for (const item of configUpdates) {
-        await supabase.from('site_config').upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
-      }
-
-      await supabase.auth.refreshSession();
-      updateUserInStore({
-        fullName: profileData.fullName,
-        avatarUrl: profileData.avatarUrl,
-        email: profileData.email,
-        bio: profileData.bio,
-      });
-      
-      const { data: { user: updatedUser } } = await supabase.auth.getUser();
-      if (updatedUser) setUser(updatedUser);
-
-      setToast({ 
-        message: profileData.email !== user?.email ? '个人信息已保存，请查收新邮箱确认邮件。' : '个人信息已成功保存', 
-        type: 'success' 
-      });
-    } catch (error) {
-      console.error('Profile save error:', error);
-      setToast({ message: '保存失败: ' + (error instanceof Error ? error.message : '未知错误'), type: 'error' });
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  return {
-    user,
-    profileSaving,
-    uploadingAvatar,
-    profileData,
-    profileErrors,
-    profileFileInputRef,
-    setProfileData,
-    handleProfileChange,
-    handleAvatarUpload,
-    handleSaveProfile,
-  };
-}
-
-/**
- * 站点配置逻辑 Hook
- */
-function useSiteConfigLogic(
-  setToast: (toast: { message: string; type: 'success' | 'error' | 'info' | 'warning' } | null) => void,
-  setProfileData: React.Dispatch<React.SetStateAction<{ fullName: string; email: string; bio: string; avatarUrl: string; site_start_date: string }>>
-) {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [formData, setFormData] = useState({
-    footer_text: '',
-    github_url: '',
-    gitee_url: '',
-    qq_url: '',
-    wechat_url: '',
-    douyin_url: '',
-    home_background_url: '',
-  });
-
-  const allowedDomains = ['supabase.co', 'unsplash.com', 'github.com', 'githubusercontent.com', 'jsdelivr.net'];
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch('/api/settings');
-        const json = await res.json();
-        if (json.data) {
-          const { site_start_date, ...rest } = json.data;
-          const { site_title: _, site_description: __, site_keywords: ___, ...formDataOnly } = rest;
-          setFormData(prev => ({ ...prev, ...formDataOnly }));
-          if (site_start_date) {
-            setProfileData(prev => ({ ...prev, site_start_date: site_start_date || '' }));
-          }
-        }
-      } catch (_error) {
-        console.error('Fetch settings error:', _error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSettings();
-  }, [setProfileData]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value || '' }));
-  };
-
-  const validateImageUrl = (url: string) => {
-    if (!url) return true;
-    try {
-      const parsedUrl = new URL(url);
-      return allowedDomains.some(domain => parsedUrl.hostname.includes(domain));
-    } catch {
-      return false;
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
-      setToast({ message: '只支持 JPG, PNG, GIF, WEBP 格式图片', type: 'error' });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setToast({ message: '图片大小不能超过 5MB', type: 'error' });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setToast({ message: '请先登录', type: 'error' });
-        return;
-      }
-
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('type', 'site');
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: uploadFormData,
-      });
-
-      const json = await res.json();
-      if (res.ok && json.data?.url) {
-        const newUrl = json.data.url;
-        setFormData(prev => ({ ...prev, home_background_url: newUrl }));
-        
-        const saveRes = await fetch('/api/settings', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ home_background_url: newUrl }),
-        });
-
-        if (saveRes.ok) {
-          setToast({ message: '首页背景已即时更新', type: 'success' });
-        } else {
-          setToast({ message: '同步失败', type: 'warning' });
-        }
-      } else {
-        throw new Error(json.error || '上传失败');
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setToast({ message: error instanceof Error ? error.message : '上传失败', type: 'error' });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.home_background_url && !validateImageUrl(formData.home_background_url)) {
-      setToast({ message: '外部链接域名不在白名单内', type: 'error' });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const res = await fetch('/api/settings', { 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        setToast({ message: '全局配置已成功保存', type: 'success' });
-      } else {
-        setToast({ message: '保存失败', type: 'error' });
-      }
-    } catch (_error) {
-      console.error('Save error:', _error);
-      setToast({ message: '保存出错', type: 'error' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRemoveBackground = async () => {
-    setFormData(prev => ({ ...prev, home_background_url: '' }));
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch('/api/settings', { 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ home_background_url: '' }),
-      });
-      setToast({ message: '首页背景已移除', type: 'success' });
-    } catch (_error) {
-      console.error('Remove background error:', _error);
-    }
-  };
-
-  return {
-    loading,
-    saving,
-    uploading,
-    fileInputRef,
-    formData,
-    handleChange,
-    handleFileUpload,
-    handleSubmit,
-    handleRemoveBackground,
-  };
 }
 
 /**

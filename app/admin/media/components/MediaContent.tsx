@@ -34,6 +34,92 @@ const getCategoryLabel = (type?: string) => {
 };
 
 /**
+ * 删除确认操作组件
+ * @param props - 删除操作相关属性
+ * @returns 删除确认按钮组
+ */
+function DeleteConfirmActions({
+  onDelete,
+  onCancel
+}: {
+  onDelete: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200">
+      <span className="text-white text-xs font-bold drop-shadow-md">确认删除？</span>
+      <div className="flex gap-2">
+        <Button 
+          size="sm" 
+          className="h-8 px-3 bg-[#F53F3F] hover:bg-[#D32029] text-white rounded-lg text-xs"
+          onClick={onDelete}
+        >
+          确认
+        </Button>
+        <Button 
+          size="sm" 
+          className="h-8 px-3 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs backdrop-blur-md"
+          onClick={onCancel}
+        >
+          取消
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 媒体操作按钮组组件
+ * @param props - 操作按钮相关属性
+ * @returns 操作按钮组
+ */
+function MediaActionButtons({
+  item,
+  copiedId,
+  onPreview,
+  onCopy,
+  onSetDeletingId
+}: {
+  item: MediaItem;
+  copiedId: string | null;
+  onPreview: () => void;
+  onCopy: () => void;
+  onSetDeletingId: () => void;
+}) {
+  return (
+    <>
+      <Button 
+        size="sm" 
+        variant="ghost"
+        className="h-9 w-9 p-0 bg-white/20 hover:bg-white text-white hover:text-[#165DFF] rounded-full backdrop-blur-md transition-all"
+        onClick={onPreview}
+        title="预览"
+      >
+        <Eye className="h-4.5 w-4.5" />
+      </Button>
+      <Button 
+        size="sm" 
+        variant="ghost"
+        className="h-9 w-9 p-0 bg-white/20 hover:bg-white text-white hover:text-[#165DFF] rounded-full backdrop-blur-md transition-all"
+        onClick={onCopy}
+        title="复制链接"
+      >
+        {copiedId === item.id ? <Check className="h-4.5 w-4.5 text-green-500" /> : <Copy className="h-4.5 w-4.5" />}
+      </Button>
+      <Button 
+        size="sm" 
+        variant="ghost"
+        className="h-9 w-9 p-0 bg-white/20 hover:bg-[#F53F3F] text-white rounded-full backdrop-blur-md transition-all"
+        onClick={onSetDeletingId}
+        title="删除"
+      >
+        <Trash2 className="h-4.5 w-4.5" />
+      </Button>
+    </>
+  );
+}
+
+/**
  * 媒体卡片组件 (网格视图)
  */
 function GridItem({ 
@@ -62,65 +148,26 @@ function GridItem({
           unoptimized
         />
         
-        {/* Overlay Actions */}
         <div className={cn(
           "absolute inset-0 bg-black/40 transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-[2px]",
           deletingId === item.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}>
           {deletingId === item.id ? (
-            <div className="flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200">
-              <span className="text-white text-xs font-bold drop-shadow-md">确认删除？</span>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="h-8 px-3 bg-[#F53F3F] hover:bg-[#D32029] text-white rounded-lg text-xs"
-                  onClick={() => onDelete(item.id)}
-                >
-                  确认
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="h-8 px-3 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs backdrop-blur-md"
-                  onClick={() => onSetDeletingId(null)}
-                >
-                  取消
-                </Button>
-              </div>
-            </div>
+            <DeleteConfirmActions 
+              onDelete={() => onDelete(item.id)}
+              onCancel={() => onSetDeletingId(null)}
+            />
           ) : (
-            <>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                className="h-9 w-9 p-0 bg-white/20 hover:bg-white text-white hover:text-[#165DFF] rounded-full backdrop-blur-md transition-all"
-                onClick={() => onPreview(item)}
-                title="预览"
-              >
-                <Eye className="h-4.5 w-4.5" />
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                className="h-9 w-9 p-0 bg-white/20 hover:bg-white text-white hover:text-[#165DFF] rounded-full backdrop-blur-md transition-all"
-                onClick={() => onCopy(item.url, item.id)}
-                title="复制链接"
-              >
-                {copiedId === item.id ? <Check className="h-4.5 w-4.5 text-green-500" /> : <Copy className="h-4.5 w-4.5" />}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                className="h-9 w-9 p-0 bg-white/20 hover:bg-[#F53F3F] text-white rounded-full backdrop-blur-md transition-all"
-                onClick={() => onSetDeletingId(item.id)}
-                title="删除"
-              >
-                <Trash2 className="h-4.5 w-4.5" />
-              </Button>
-            </>
+            <MediaActionButtons 
+              item={item}
+              copiedId={copiedId}
+              onPreview={() => onPreview(item)}
+              onCopy={() => onCopy(item.url, item.id)}
+              onSetDeletingId={() => onSetDeletingId(item.id)}
+            />
           )}
         </div>
         
-        {/* Type Badge */}
         <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-md rounded-lg border border-white/20 text-[10px] font-bold text-[#4E5969] uppercase tracking-wider shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
           {getCategoryLabel(item.type)}
         </div>

@@ -250,6 +250,72 @@ function useBlogOperations({
 }
 
 /**
+ * 管理筛选状态和逻辑的 Hook
+ */
+function useBlogFilters() {
+  const [filterTitle, setFilterTitle] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleFilter = useCallback((fetchBlogs: () => void, showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void) => {
+    const hasValue = filterTitle.trim() !== '' || 
+                     filterCategory !== '' || 
+                     filterTag !== '' || 
+                     (filterDateRange.start !== '' || filterDateRange.end !== '');
+
+    if (!hasValue) {
+      showToast('筛选条件不能为空', 'warning');
+      return;
+    }
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      fetchBlogs();
+    }, 300);
+  }, [filterTitle, filterCategory, filterTag, filterDateRange]);
+
+  const handleReset = useCallback((fetchBlogs: () => void, setLoading: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setFilterTitle('');
+    setFilterCategory('');
+    setFilterTag('');
+    setFilterDateRange({ start: '', end: '' });
+    setLoading(true);
+    setTimeout(() => {
+      fetchBlogs(true);
+    }, 100);
+  }, []);
+
+  return {
+    filterTitle, setFilterTitle,
+    filterCategory, setFilterCategory,
+    filterTag, setFilterTag,
+    filterDateRange, setFilterDateRange,
+    handleFilter, handleReset
+  };
+}
+
+/**
+ * 管理分页逻辑的 Hook
+ */
+function useBlogPagination(sortedBlogs: Blog[], pageSize = 10) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const paginatedBlogs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedBlogs.slice(start, start + pageSize);
+  }, [sortedBlogs, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(sortedBlogs.length / pageSize) || 1;
+
+  return { currentPage, setCurrentPage, paginatedBlogs, totalPages };
+}
+
+/**
  * 博客列表管理自定义 Hook
  * @returns 包含博客列表、筛选、排序、分页等状态和操作
  */
@@ -258,19 +324,16 @@ export function useBlogList() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   
-  const [filterTitle, setFilterTitle] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
   const { categories, tags, fetchFilters } = useBlogFiltersFetch(showToast);
+  
+  const { filterTitle, setFilterTitle, filterCategory, setFilterCategory, filterTag, setFilterTag, filterDateRange, setFilterDateRange, handleFilter, handleReset } = useBlogFilters();
   
   const { fetchBlogs } = useBlogFetch({
     filterCategory,
@@ -298,45 +361,17 @@ export function useBlogList() {
     fetchBlogs(true);
   }, [fetchFilters, fetchBlogs]);
 
-  const handleFilter = useCallback(() => {
-    const hasValue = filterTitle.trim() !== '' || 
-                     filterCategory !== '' || 
-                     filterTag !== '' || 
-                     (filterDateRange.start !== '' || filterDateRange.end !== '');
-
-    if (!hasValue) {
-      showToast('筛选条件不能为空', 'warning');
-      return;
-    }
-
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
+  const onHandleFilter = useCallback(() => {
     setCurrentPage(1);
-    debounceTimer.current = setTimeout(() => {
-      fetchBlogs();
-    }, 300);
-  }, [filterTitle, filterCategory, filterTag, filterDateRange, fetchBlogs, showToast]);
+    handleFilter(fetchBlogs, showToast);
+  }, [handleFilter, fetchBlogs, showToast]);
 
-  const handleReset = useCallback(() => {
-    setFilterTitle('');
-    setFilterCategory('');
-    setFilterTag('');
-    setFilterDateRange({ start: '', end: '' });
+  const onHandleReset = useCallback(() => {
     setCurrentPage(1);
-    setLoading(true);
-    setTimeout(() => {
-      fetchBlogs(true);
-    }, 100);
-  }, [fetchBlogs]);
+    handleReset(fetchBlogs, setLoading);
+  }, [handleReset, fetchBlogs]);
 
-  const paginatedBlogs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedBlogs.slice(start, start + pageSize);
-  }, [sortedBlogs, currentPage]);
-
-  const totalPages = Math.ceil(sortedBlogs.length / pageSize) || 1;
+  const { paginatedBlogs, totalPages } = useBlogPagination(sortedBlogs, pageSize);
 
   return {
     blogs,
@@ -362,8 +397,8 @@ export function useBlogList() {
     totalPages,
     paginatedBlogs,
     handleSort,
-    handleFilter,
-    handleReset,
+    handleFilter: onHandleFilter,
+    handleReset: onHandleReset,
     handleExport,
     handleDelete,
     confirmDelete,

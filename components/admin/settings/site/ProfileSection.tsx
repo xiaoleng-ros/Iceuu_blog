@@ -10,6 +10,153 @@ import { cn } from '@/lib/utils';
 import { ProfileSectionProps, ProfileData } from './types';
 
 /**
+ * 名称输入字段组件
+ */
+function NameField({
+  value,
+  error,
+  onChange
+}: {
+  value: string;
+  error?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+        <span className="text-[#F53F3F]">*</span> 名称
+      </Label>
+      <Input
+        name="fullName"
+        value={value}
+        onChange={onChange}
+        placeholder="请输入显示名称"
+        className={cn(
+          "h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
+          error && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+        )}
+      />
+      {error && (
+        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 邮箱输入字段组件
+ */
+function EmailField({
+  value,
+  error,
+  onChange
+}: {
+  value: string;
+  error?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+        <span className="text-[#F53F3F]">*</span> 邮箱
+      </Label>
+      <div className="relative group">
+        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+        <Input
+          name="email"
+          type="email"
+          value={value}
+          onChange={onChange}
+          placeholder="example@email.com"
+          className={cn(
+            "h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
+            error && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+          )}
+        />
+      </div>
+      {error && (
+        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 建站日期字段组件
+ */
+function SiteDateField({
+  value,
+  onChange
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="md:col-span-2 space-y-2">
+      <Label htmlFor="site_start_date_input" className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+        建站日期
+        <span className="text-[10px] font-normal text-[#86909C]">(用于计算站点运行时间)</span>
+      </Label>
+      <Input
+        id="site_start_date_input"
+        name="site_start_date"
+        type="date"
+        value={value}
+        onChange={onChange}
+        className="h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+      />
+    </div>
+  );
+}
+
+/**
+ * 个人介绍字段组件
+ */
+function BioField({
+  value,
+  error,
+  onChange
+}: {
+  value: string;
+  error?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+}) {
+  return (
+    <div className="md:col-span-2 space-y-2">
+      <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
+        <span className="text-[#F53F3F]">*</span> 个人介绍
+      </Label>
+      <div className="relative group">
+        <FileText className="absolute left-3 top-3 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
+        <textarea
+          name="bio"
+          value={value}
+          onChange={onChange}
+          rows={4}
+          className={cn(
+            "w-full pl-10 pr-4 py-3 border border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all outline-none text-[#1D2129] text-sm resize-none bg-[#F9FBFF]/30",
+            error && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
+          )}
+          placeholder="写点什么介绍一下自己吧..."
+        />
+      </div>
+      {error && (
+        <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
+          <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
  * 个人资料表单字段
  */
 function ProfileFormFields({
@@ -29,101 +176,31 @@ function ProfileFormFields({
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="space-y-2">
-        <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-          <span className="text-[#F53F3F]">*</span> 名称
-        </Label>
-        <Input
-          name="fullName"
-          value={profileData.fullName}
-          onChange={handleProfileChange}
-          placeholder="请输入显示名称"
-          className={cn(
-            "h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-            profileErrors.fullName && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-          )}
-        />
-        {profileErrors.fullName && (
-          <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-            <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-            {profileErrors.fullName}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-          <span className="text-[#F53F3F]">*</span> 邮箱
-        </Label>
-        <div className="relative group">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
-          <Input
-            name="email"
-            type="email"
-            value={profileData.email}
-            onChange={handleProfileChange}
-            placeholder="example@email.com"
-            className={cn(
-              "h-11 pl-10 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30",
-              profileErrors.email && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-            )}
-          />
-        </div>
-        {profileErrors.email && (
-          <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-            <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-            {profileErrors.email}
-          </p>
-        )}
-      </div>
-
+      <NameField
+        value={profileData.fullName}
+        error={profileErrors.fullName}
+        onChange={handleProfileChange}
+      />
+      <EmailField
+        value={profileData.email}
+        error={profileErrors.email}
+        onChange={handleProfileChange}
+      />
       <AvatarUpload 
         url={profileData.avatarUrl}
         uploading={uploadingAvatar}
         onUpload={handleAvatarUpload}
         fileInputRef={profileFileInputRef}
       />
-
-      <div className="md:col-span-2 space-y-2">
-        <Label htmlFor="site_start_date_input" className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-          建站日期
-          <span className="text-[10px] font-normal text-[#86909C]">(用于计算站点运行时间)</span>
-        </Label>
-        <Input
-          id="site_start_date_input"
-          name="site_start_date"
-          type="date"
-          value={profileData.site_start_date}
-          onChange={handleProfileChange}
-          className="h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
-        />
-      </div>
-
-      <div className="md:col-span-2 space-y-2">
-        <Label className="text-sm font-bold text-[#4E5969] flex items-center gap-1">
-          <span className="text-[#F53F3F]">*</span> 个人介绍
-        </Label>
-        <div className="relative group">
-          <FileText className="absolute left-3 top-3 text-[#C9CDD4] group-focus-within:text-[#165DFF] transition-colors" size={16} />
-          <textarea
-            name="bio"
-            value={profileData.bio}
-            onChange={handleProfileChange}
-            rows={4}
-            className={cn(
-              "w-full pl-10 pr-4 py-3 border border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all outline-none text-[#1D2129] text-sm resize-none bg-[#F9FBFF]/30",
-              profileErrors.bio && "border-[#F53F3F] focus:ring-[#F53F3F]/20"
-            )}
-            placeholder="写点什么介绍一下自己吧..."
-          />
-        </div>
-        {profileErrors.bio && (
-          <p className="text-[12px] text-[#F53F3F] mt-1 flex items-center gap-1">
-            <span className="w-1 h-1 bg-[#F53F3F] rounded-full" />
-            {profileErrors.bio}
-          </p>
-        )}
-      </div>
+      <SiteDateField
+        value={profileData.site_start_date}
+        onChange={handleProfileChange}
+      />
+      <BioField
+        value={profileData.bio}
+        error={profileErrors.bio}
+        onChange={handleProfileChange}
+      />
     </div>
   );
 }

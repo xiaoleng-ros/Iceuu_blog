@@ -116,19 +116,178 @@ function useDraftsFetch({
 }
 
 /**
- * 管理草稿操作逻辑的 Hook（发布、删除等）
+ * 确认配置参数接口
  */
-function useDraftsOperations({
-  setBlogs,
-  setSelectedIds,
-  showToast,
-  selectedIds
-}: {
-  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>;
-  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
-  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
-  selectedIds: string[];
-}) {
+interface ConfirmConfigParams {
+  title: string;
+  description: string;
+  confirmText: string;
+  variant: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+}
+
+/**
+ * 创建确认配置
+ */
+function createConfirmConfig({
+  title,
+  description,
+  confirmText,
+  variant,
+  onConfirm
+}: ConfirmConfigParams): ConfirmConfig {
+  return {
+    isOpen: true,
+    title,
+    description,
+    confirmText,
+    variant,
+    onConfirm
+  };
+}
+
+/**
+ * 发布草稿操作
+ */
+async function publishBlog(
+  id: string,
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/blog/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ draft: false }),
+    });
+    if (res.ok) {
+      setBlogs(prev => prev.filter(b => b.id !== id));
+      showToast('文章发布成功', 'success');
+    } else {
+      showToast('发布失败', 'error');
+    }
+  } catch (_error) {
+    showToast('操作出错', 'error');
+  }
+}
+
+/**
+ * 删除草稿操作
+ */
+async function deleteBlog(
+  id: string,
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/blog/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+    if (res.ok) {
+      setBlogs(prev => prev.filter(b => b.id !== id));
+      setSelectedIds(prev => prev.filter(i => i !== id));
+      showToast('已移入回收站', 'success');
+    } else {
+      showToast('移动失败', 'error');
+    }
+  } catch (_error) {
+    showToast('操作出错', 'error');
+  }
+}
+
+/**
+ * 批量发布操作
+ */
+async function batchPublishBlogs(
+  selectedIds: string[],
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const results = await Promise.all(
+      selectedIds.map(id => 
+        fetch(`/api/blog/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ draft: false }),
+        })
+      )
+    );
+    const successCount = results.filter(r => r.ok).length;
+    if (successCount > 0) {
+      const successIds = selectedIds.filter((_, i) => results[i]?.ok);
+      setBlogs(prev => prev.filter(b => !successIds.includes(b.id)));
+      setSelectedIds(prev => prev.filter(id => !successIds.includes(id)));
+      showToast(`成功发布 ${successCount} 篇文章`, 'success');
+    } else {
+      showToast('发布失败', 'error');
+    }
+  } catch (_error) {
+    showToast('批量操作出错', 'error');
+  }
+}
+
+/**
+ * 批量删除操作
+ */
+async function batchDeleteBlogs(
+  selectedIds: string[],
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const results = await Promise.all(
+      selectedIds.map(id => 
+        fetch(`/api/blog/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        })
+      )
+    );
+    const successCount = results.filter(r => r.ok).length;
+    if (successCount > 0) {
+      const successIds = selectedIds.filter((_, i) => results[i]?.ok);
+      setBlogs(prev => prev.filter(b => !successIds.includes(b.id)));
+      setSelectedIds([]);
+      showToast(`成功将 ${successCount} 篇文章移入回收站`, 'success');
+    } else {
+      showToast('删除失败', 'error');
+    }
+  } catch (_error) {
+    showToast('批量删除出错', 'error');
+  }
+}
+
+/**
+ * 管理草稿操作逻辑的 Hook
+ */
+function useDraftsActions(
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
   const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
     isOpen: false,
     title: '',
@@ -138,188 +297,135 @@ function useDraftsOperations({
     onConfirm: () => {},
   });
 
-  const handlePublish = async (id: string) => {
-    setConfirmConfig({
-      isOpen: true,
+  const openPublishConfirm = (id: string) => {
+    setConfirmConfig(createConfirmConfig({
       title: '确认发布',
       description: '确定要发布这篇草稿吗？发布后文章将对读者可见。',
       confirmText: '立即发布',
       variant: 'info',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`/api/blog/${id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ draft: false }),
-          });
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => b.id !== id));
-            showToast('文章发布成功', 'success');
-          } else {
-            showToast('发布失败', 'error');
-          }
-        } catch (_error) {
-          showToast('操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await publishBlog(id, setBlogs, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
-  const handleDelete = async (id: string) => {
-    setConfirmConfig({
-      isOpen: true,
+  const openDeleteConfirm = (id: string) => {
+    setConfirmConfig(createConfirmConfig({
       title: '移入回收站',
       description: '确定要将这篇草稿移入回收站吗？您稍后可以在回收站中找回它。',
       confirmText: '移入回收站',
       variant: 'danger',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`/api/blog/${id}`, {
-            method: 'DELETE',
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => b.id !== id));
-            setSelectedIds(prev => prev.filter(i => i !== id));
-            showToast('已移入回收站', 'success');
-          } else {
-            showToast('移动失败', 'error');
-          }
-        } catch (_error) {
-          showToast('操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await deleteBlog(id, setBlogs, setSelectedIds, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
-  const handleBatchPublish = async () => {
-    if (selectedIds.length === 0) return;
-    setConfirmConfig({
-      isOpen: true,
+  const openBatchPublishConfirm = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setConfirmConfig(createConfirmConfig({
       title: '批量发布',
-      description: `确定要发布选中的 ${selectedIds.length} 篇草稿吗？`,
+      description: `确定要发布选中的 ${ids.length} 篇草稿吗？`,
       confirmText: '全部发布',
       variant: 'info',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const results = await Promise.all(
-            selectedIds.map(id => 
-              fetch(`/api/blog/${id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ draft: false }),
-              })
-            )
-          );
-          const successCount = results.filter(r => r.ok).length;
-          if (successCount > 0) {
-            const successIds = selectedIds.filter((_, i) => results[i]?.ok);
-            setBlogs(prev => prev.filter(b => !successIds.includes(b.id)));
-            setSelectedIds(prev => prev.filter(id => !successIds.includes(id)));
-            showToast(`成功发布 ${successCount} 篇文章`, 'success');
-          } else {
-            showToast('发布失败', 'error');
-          }
-        } catch (_error) {
-          showToast('批量操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await batchPublishBlogs(ids, setBlogs, setSelectedIds, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
-  const handleBatchDelete = async () => {
-    if (selectedIds.length === 0) return;
-    setConfirmConfig({
-      isOpen: true,
+  const openBatchDeleteConfirm = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setConfirmConfig(createConfirmConfig({
       title: '批量删除',
-      description: `确定要将选中的 ${selectedIds.length} 篇草稿移入回收站吗？`,
+      description: `确定要将选中的 ${ids.length} 篇草稿移入回收站吗？`,
       confirmText: '全部删除',
       variant: 'danger',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const results = await Promise.all(
-            selectedIds.map(id => 
-              fetch(`/api/blog/${id}`, {
-                method: 'DELETE',
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              })
-            )
-          );
-          const successCount = results.filter(r => r.ok).length;
-          if (successCount > 0) {
-            const successIds = selectedIds.filter((_, i) => results[i]?.ok);
-            setBlogs(prev => prev.filter(b => !successIds.includes(b.id)));
-            setSelectedIds([]);
-            showToast(`成功将 ${successCount} 篇文章移入回收站`, 'success');
-          } else {
-            showToast('删除失败', 'error');
-          }
-        } catch (_error) {
-          showToast('批量删除出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await batchDeleteBlogs(ids, setBlogs, setSelectedIds, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
   return {
     confirmConfig,
     setConfirmConfig,
-    handlePublish,
-    handleDelete,
-    handleBatchPublish,
-    handleBatchDelete
+    handlePublish: openPublishConfirm,
+    handleDelete: openDeleteConfirm,
+    handleBatchPublish: openBatchPublishConfirm,
+    handleBatchDelete: openBatchDeleteConfirm
   };
 }
 
 /**
+ * 管理筛选状态和逻辑的 Hook
+ */
+function useDraftsFilters() {
+  const [filterTitle, setFilterTitle] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleFilter = useCallback((fetchBlogs: (isInitial?: boolean) => void) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
+  }, []);
+
+  const handleReset = useCallback((fetchBlogs: (isInitial?: boolean) => void) => {
+    setFilterTitle('');
+    setFilterCategory('');
+    setFilterTag('');
+    setFilterDateRange({ start: '', end: '' });
+    setTimeout(() => fetchBlogs(true), 100);
+  }, []);
+
+  return {
+    filterTitle, setFilterTitle,
+    filterCategory, setFilterCategory,
+    filterTag, setFilterTag,
+    filterDateRange, setFilterDateRange,
+    handleFilter, handleReset
+  };
+}
+
+/**
+ * 管理分页逻辑的 Hook
+ */
+function useDraftsPagination(blogs: Blog[], pageSize = 10) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const paginatedBlogs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return blogs.slice(start, start + pageSize);
+  }, [blogs, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(blogs.length / pageSize) || 1;
+
+  return { currentPage, setCurrentPage, paginatedBlogs, totalPages };
+}
+
+/**
  * 草稿箱列表管理自定义 Hook
- * @returns 包含草稿列表、筛选、批量操作、分页等状态和操作
  */
 export function useDraftsList() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
-  const [filterTitle, setFilterTitle] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
-  const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
   const { categories, tags, fetchFilters } = useDraftsFiltersFetch();
+  
+  const { filterTitle, setFilterTitle, filterCategory, setFilterCategory, filterTag, setFilterTag, filterDateRange, setFilterDateRange, handleFilter, handleReset } = useDraftsFilters();
   
   const { fetchBlogs } = useDraftsFetch({
     filterCategory,
@@ -338,48 +444,34 @@ export function useDraftsList() {
     handleDelete,
     handleBatchPublish,
     handleBatchDelete
-  } = useDraftsOperations({ setBlogs, setSelectedIds, showToast, selectedIds });
+  } = useDraftsActions(setBlogs, setSelectedIds, showToast);
 
   useEffect(() => {
     fetchFilters();
     fetchBlogs(true);
   }, [fetchFilters, fetchBlogs]);
 
-  const handleFilter = useCallback(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    setCurrentPage(1);
-    debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
-  }, [fetchBlogs]);
+  const onHandleFilter = useCallback(() => {
+    handleFilter(fetchBlogs);
+  }, [handleFilter, fetchBlogs]);
 
-  const handleReset = useCallback(() => {
-    setFilterTitle('');
-    setFilterCategory('');
-    setFilterTag('');
-    setFilterDateRange({ start: '', end: '' });
-    setCurrentPage(1);
-    setTimeout(() => fetchBlogs(true), 100);
-  }, [fetchBlogs]);
+  const onHandleReset = useCallback(() => {
+    handleReset(fetchBlogs);
+  }, [handleReset, fetchBlogs]);
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  }, []);
 
-  const paginatedBlogs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return blogs.slice(start, start + pageSize);
-  }, [blogs, currentPage]);
+  const { currentPage, setCurrentPage, paginatedBlogs, totalPages } = useDraftsPagination(blogs, pageSize);
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (selectedIds.length === paginatedBlogs.length) {
       setSelectedIds([]);
     } else {
       setSelectedIds(paginatedBlogs.map(b => b.id));
     }
-  };
-
-  const totalPages = Math.ceil(blogs.length / pageSize) || 1;
+  }, [selectedIds, paginatedBlogs]);
 
   return {
     blogs,
@@ -403,8 +495,8 @@ export function useDraftsList() {
     setCurrentPage,
     totalPages,
     paginatedBlogs,
-    handleFilter,
-    handleReset,
+    handleFilter: onHandleFilter,
+    handleReset: onHandleReset,
     handlePublish,
     handleDelete,
     handleBatchPublish,

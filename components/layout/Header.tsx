@@ -59,87 +59,114 @@ function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
         className="max-w-2xl mx-auto mt-24 px-4 transition-transform duration-300 relative"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 relative">
-          <form onSubmit={handleSubmit} className="p-4 pb-2">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-sm font-bold text-gray-700">内容搜索</h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-800 transition-all duration-300 group"
-                title="关闭 (Esc)"
-              >
-                <X className="w-4.5 h-4.5 transition-transform duration-300 group-hover:rotate-90 stroke-[2.5px]" />
-              </button>
-            </div>
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 h-5 w-5 text-gray-400" />
-              <input
-                autoFocus
-                className={cn(
-                  "w-full bg-gray-50 border focus:ring-2 text-lg pl-10 pr-10 h-12 rounded-xl text-gray-900 placeholder:text-gray-400 transition-all",
-                  error ? "border-red-300 focus:ring-red-100 ring-2 ring-red-50" : "border-transparent focus:ring-blue-100"
-                )}
-                placeholder="搜索文章、分类或标签..."
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  if (error && e.target.value.trim()) setError(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') onClose();
-                }}
-              />
-              <div className="absolute right-3 flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 bg-gray-200/50 rounded text-[10px] font-medium text-gray-500">
-                  <Command className="w-3 h-3" />
-                  <span>K</span>
-                </div>
-                {query && (
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setQuery('');
-                      setError(false);
-                    }}
-                    className="p-1 hover:bg-gray-200 rounded-full transition-colors"
-                  >
-                    <X className="h-4 w-4 text-gray-400" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {error && (
-              <div className="px-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                <p className="text-xs font-medium text-red-500 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
-                  请输入搜索内容
-                </p>
-              </div>
-            )}
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-              <div className="flex gap-4 text-[11px] text-gray-400">
-                <span className="flex items-center gap-1">
-                  <span className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 font-sans">Enter</span> 
-                  确认
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 font-sans">Esc</span> 
-                  关闭
-                </span>
-              </div>
-              <Button 
-                type="submit"
-                className="h-9 px-6 rounded-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white shadow-md shadow-emerald-100 transition-all active:scale-95 shrink-0 text-sm border-none"
-              >
-                搜索
-              </Button>
-            </div>
-          </form>
-        </div>
+        <SearchFormContent 
+          query={query}
+          error={error}
+          onQueryChange={setQuery}
+          onErrorChange={setError}
+          onSubmit={handleSubmit}
+          onClear={() => { setQuery(''); setError(false); }}
+          onClose={onClose}
+        />
       </div>
+    </div>
+  );
+}
+
+function SearchFormContent({
+  query,
+  error,
+  onQueryChange,
+  onErrorChange,
+  onSubmit,
+  onClear,
+  onClose,
+}: {
+  query: string;
+  error: boolean;
+  onQueryChange: (value: string) => void;
+  onErrorChange: (value: boolean) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 relative">
+      <form onSubmit={onSubmit} className="p-4 pb-2">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h2 className="text-sm font-bold text-gray-700">内容搜索</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-800 transition-all duration-300 group"
+            title="关闭 (Esc)"
+          >
+            <X className="w-4.5 h-4.5 transition-transform duration-300 group-hover:rotate-90 stroke-[2.5px]" />
+          </button>
+        </div>
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 h-5 w-5 text-gray-400" />
+          <input
+            autoFocus
+            className={cn(
+              "w-full bg-gray-50 border focus:ring-2 text-lg pl-10 pr-10 h-12 rounded-xl text-gray-900 placeholder:text-gray-400 transition-all",
+              error ? "border-red-300 focus:ring-red-100 ring-2 ring-red-50" : "border-transparent focus:ring-blue-100"
+            )}
+            placeholder="搜索文章、分类或标签..."
+            value={query}
+            onChange={(e) => {
+              onQueryChange(e.target.value);
+              if (error && e.target.value.trim()) onErrorChange(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') onClose();
+            }}
+          />
+          <div className="absolute right-3 flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 bg-gray-200/50 rounded text-[10px] font-medium text-gray-500">
+              <Command className="w-3 h-3" />
+              <span>K</span>
+            </div>
+            {query && (
+              <button 
+                type="button"
+                onClick={onClear}
+                className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="px-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <p className="text-xs font-medium text-red-500 flex items-center gap-1">
+              <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
+              请输入搜索内容
+            </p>
+          </div>
+        )}
+
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+          <div className="flex gap-4 text-[11px] text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 font-sans">Enter</span> 
+              确认
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 font-sans">Esc</span> 
+              关闭
+            </span>
+          </div>
+          <Button 
+            type="submit"
+            className="h-9 px-6 rounded-lg font-bold bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white shadow-md shadow-emerald-100 transition-all active:scale-95 shrink-0 text-sm border-none"
+          >
+            搜索
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

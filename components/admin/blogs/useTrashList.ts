@@ -110,19 +110,165 @@ function useTrashFetch({
 }
 
 /**
- * 管理回收站操作逻辑的 Hook（恢复、彻底删除等）
+ * 确认配置参数接口
  */
-function useTrashOperations({
-  setBlogs,
-  setSelectedIds,
-  showToast,
-  selectedIds
-}: {
-  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>;
-  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
-  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
-  selectedIds: string[];
-}) {
+interface ConfirmConfigParams {
+  title: string;
+  description: string;
+  confirmText: string;
+  variant: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+}
+
+/**
+ * 创建确认配置
+ */
+function createConfirmConfig({
+  title,
+  description,
+  confirmText,
+  variant,
+  onConfirm
+}: ConfirmConfigParams): ConfirmConfig {
+  return {
+    isOpen: true,
+    title,
+    description,
+    confirmText,
+    variant,
+    onConfirm
+  };
+}
+
+/**
+ * 恢复文章操作
+ */
+async function restoreBlog(
+  id: string,
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/blog/${id}?restore=true`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (res.ok) {
+      setBlogs(prev => prev.filter(b => b.id !== id));
+      showToast('文章已恢复', 'success');
+    } else {
+      showToast('恢复失败', 'error');
+    }
+  } catch (_error) {
+    showToast('操作出错', 'error');
+  }
+}
+
+/**
+ * 永久删除文章操作
+ */
+async function permanentDeleteBlog(
+  id: string,
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/blog/${id}?permanent=true`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (res.ok) {
+      setBlogs(prev => prev.filter(b => b.id !== id));
+      setSelectedIds(prev => prev.filter(i => i !== id));
+      showToast('文章已彻底删除', 'success');
+    } else {
+      showToast('删除失败', 'error');
+    }
+  } catch (_error) {
+    showToast('操作出错', 'error');
+  }
+}
+
+/**
+ * 批量恢复文章操作
+ */
+async function batchRestoreBlogs(
+  selectedIds: string[],
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/blog`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}` 
+      },
+      body: JSON.stringify({
+        ids: selectedIds,
+        updates: { is_deleted: false, deleted_at: null }
+      })
+    });
+    if (res.ok) {
+      setBlogs(prev => prev.filter(b => !selectedIds.includes(b.id)));
+      setSelectedIds([]);
+      showToast(`已成功恢复 ${selectedIds.length} 篇文章`, 'success');
+    } else {
+      showToast('批量恢复失败', 'error');
+    }
+  } catch (_error) {
+    showToast('操作出错', 'error');
+  }
+}
+
+/**
+ * 批量永久删除文章操作
+ */
+async function batchPermanentDeleteBlogs(
+  selectedIds: string[],
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/blog?permanent=true`, {
+      method: 'DELETE',
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}` 
+      },
+      body: JSON.stringify({ ids: selectedIds })
+    });
+    if (res.ok) {
+      setBlogs(prev => prev.filter(b => !selectedIds.includes(b.id)));
+      setSelectedIds([]);
+      showToast(`已成功彻底删除 ${selectedIds.length} 篇文章`, 'success');
+    } else {
+      showToast('批量删除失败', 'error');
+    }
+  } catch (_error) {
+    showToast('操作出错', 'error');
+  }
+}
+
+/**
+ * 管理回收站操作逻辑的 Hook
+ */
+function useTrashActions(
+  setBlogs: React.Dispatch<React.SetStateAction<Blog[]>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>,
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+) {
   const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
     isOpen: false,
     title: '',
@@ -132,175 +278,135 @@ function useTrashOperations({
     onConfirm: () => {},
   });
 
-  const handleRestore = (id: string) => {
-    setConfirmConfig({
-      isOpen: true,
+  const openRestoreConfirm = (id: string) => {
+    setConfirmConfig(createConfirmConfig({
       title: '确认恢复文章',
       description: '确定要恢复这篇文章吗？恢复后文章将重新出现在已发布列表中。',
       confirmText: '确认恢复',
       variant: 'info',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`/api/blog/${id}?restore=true`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => b.id !== id));
-            showToast('文章已恢复', 'success');
-          } else {
-            showToast('恢复失败', 'error');
-          }
-        } catch (_error) {
-          showToast('操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await restoreBlog(id, setBlogs, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
-  const handlePermanentDelete = (id: string) => {
-    setConfirmConfig({
-      isOpen: true,
+  const openPermanentDeleteConfirm = (id: string) => {
+    setConfirmConfig(createConfirmConfig({
       title: '确认彻底删除',
       description: '确定要彻底删除这篇文章吗？此操作不可撤销，文章数据将永久丢失！',
       confirmText: '彻底删除',
       variant: 'danger',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`/api/blog/${id}?permanent=true`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => b.id !== id));
-            setSelectedIds(prev => prev.filter(i => i !== id));
-            showToast('文章已彻底删除', 'success');
-          } else {
-            showToast('删除失败', 'error');
-          }
-        } catch (_error) {
-          showToast('操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await permanentDeleteBlog(id, setBlogs, setSelectedIds, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
-  const handleBatchRestore = () => {
-    if (selectedIds.length === 0) return;
-    setConfirmConfig({
-      isOpen: true,
+  const openBatchRestoreConfirm = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setConfirmConfig(createConfirmConfig({
       title: '确认批量恢复',
-      description: `确定要恢复选中的 ${selectedIds.length} 篇文章吗？`,
+      description: `确定要恢复选中的 ${ids.length} 篇文章吗？`,
       confirmText: '批量恢复',
       variant: 'info',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`/api/blog`, {
-            method: 'PATCH',
-            headers: { 
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}` 
-            },
-            body: JSON.stringify({
-              ids: selectedIds,
-              updates: { is_deleted: false, deleted_at: null }
-            })
-          });
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => !selectedIds.includes(b.id)));
-            setSelectedIds([]);
-            showToast(`已成功恢复 ${selectedIds.length} 篇文章`, 'success');
-          } else {
-            showToast('批量恢复失败', 'error');
-          }
-        } catch (_error) {
-          showToast('操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await batchRestoreBlogs(ids, setBlogs, setSelectedIds, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
-  const handleBatchPermanentDelete = () => {
-    if (selectedIds.length === 0) return;
-    setConfirmConfig({
-      isOpen: true,
+  const openBatchPermanentDeleteConfirm = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setConfirmConfig(createConfirmConfig({
       title: '确认批量彻底删除',
-      description: `确定要彻底删除选中的 ${selectedIds.length} 篇文章吗？此操作不可撤销！`,
+      description: `确定要彻底删除选中的 ${ids.length} 篇文章吗？此操作不可撤销！`,
       confirmText: '批量彻底删除',
       variant: 'danger',
       onConfirm: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`/api/blog?permanent=true`, {
-            method: 'DELETE',
-            headers: { 
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}` 
-            },
-            body: JSON.stringify({ ids: selectedIds })
-          });
-          if (res.ok) {
-            setBlogs(prev => prev.filter(b => !selectedIds.includes(b.id)));
-            setSelectedIds([]);
-            showToast(`已成功彻底删除 ${selectedIds.length} 篇文章`, 'success');
-          } else {
-            showToast('批量删除失败', 'error');
-          }
-        } catch (_error) {
-          showToast('操作出错', 'error');
-        } finally {
-          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-        }
+        await batchPermanentDeleteBlogs(ids, setBlogs, setSelectedIds, showToast);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    });
+    }));
   };
 
   return {
     confirmConfig,
     setConfirmConfig,
-    handleRestore,
-    handlePermanentDelete,
-    handleBatchRestore,
-    handleBatchPermanentDelete
+    handleRestore: openRestoreConfirm,
+    handlePermanentDelete: openPermanentDeleteConfirm,
+    handleBatchRestore: openBatchRestoreConfirm,
+    handleBatchPermanentDelete: openBatchPermanentDeleteConfirm
   };
 }
 
 /**
+ * 管理筛选状态和逻辑的 Hook
+ */
+function useTrashFilters() {
+  const [filterTitle, setFilterTitle] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleFilter = useCallback((fetchBlogs: (isInitial?: boolean) => void) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
+  }, []);
+
+  const handleReset = useCallback((fetchBlogs: (isInitial?: boolean) => void) => {
+    setFilterTitle('');
+    setFilterCategory('');
+    setFilterTag('');
+    setFilterDateRange({ start: '', end: '' });
+    setTimeout(() => fetchBlogs(true), 100);
+  }, []);
+
+  return {
+    filterTitle, setFilterTitle,
+    filterCategory, setFilterCategory,
+    filterTag, setFilterTag,
+    filterDateRange, setFilterDateRange,
+    handleFilter, handleReset
+  };
+}
+
+/**
+ * 管理分页逻辑的 Hook
+ */
+function useTrashPagination(blogs: Blog[], pageSize = 10) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const paginatedBlogs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return blogs.slice(start, start + pageSize);
+  }, [blogs, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(blogs.length / pageSize) || 1;
+
+  return { currentPage, setCurrentPage, paginatedBlogs, totalPages };
+}
+
+/**
  * 回收站列表管理自定义 Hook
- * @returns 包含回收站列表、筛选、批量操作、分页等状态和操作
  */
 export function useTrashList() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
-  const [filterTitle, setFilterTitle] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState<FilterDateRange>({ start: '', end: '' });
-  const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setToast({ message, type });
   }, []);
 
   const { categories, tags, fetchFilters } = useTrashFiltersFetch();
+  
+  const { filterTitle, setFilterTitle, filterCategory, setFilterCategory, filterTag, setFilterTag, filterDateRange, setFilterDateRange, handleFilter, handleReset } = useTrashFilters();
   
   const { fetchBlogs } = useTrashFetch({
     filterCategory,
@@ -319,48 +425,34 @@ export function useTrashList() {
     handlePermanentDelete,
     handleBatchRestore,
     handleBatchPermanentDelete
-  } = useTrashOperations({ setBlogs, setSelectedIds, showToast, selectedIds });
+  } = useTrashActions(setBlogs, setSelectedIds, showToast);
 
   useEffect(() => {
     fetchFilters();
     fetchBlogs(true);
   }, [fetchFilters, fetchBlogs]);
 
-  const handleFilter = useCallback(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    setCurrentPage(1);
-    debounceTimer.current = setTimeout(() => fetchBlogs(), 300);
-  }, [fetchBlogs]);
+  const onHandleFilter = useCallback(() => {
+    handleFilter(fetchBlogs);
+  }, [handleFilter, fetchBlogs]);
 
-  const handleReset = useCallback(() => {
-    setFilterTitle('');
-    setFilterCategory('');
-    setFilterTag('');
-    setFilterDateRange({ start: '', end: '' });
-    setCurrentPage(1);
-    setTimeout(() => fetchBlogs(true), 100);
-  }, [fetchBlogs]);
+  const onHandleReset = useCallback(() => {
+    handleReset(fetchBlogs);
+  }, [handleReset, fetchBlogs]);
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  }, []);
 
-  const paginatedBlogs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return blogs.slice(start, start + pageSize);
-  }, [blogs, currentPage]);
+  const { currentPage, setCurrentPage, paginatedBlogs, totalPages } = useTrashPagination(blogs, pageSize);
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (selectedIds.length === paginatedBlogs.length) {
       setSelectedIds([]);
     } else {
       setSelectedIds(paginatedBlogs.map(b => b.id));
     }
-  };
-
-  const totalPages = Math.ceil(blogs.length / pageSize) || 1;
+  }, [selectedIds, paginatedBlogs]);
 
   return {
     blogs,
@@ -384,8 +476,8 @@ export function useTrashList() {
     setCurrentPage,
     totalPages,
     paginatedBlogs,
-    handleFilter,
-    handleReset,
+    handleFilter: onHandleFilter,
+    handleReset: onHandleReset,
     handleRestore,
     handlePermanentDelete,
     handleBatchRestore,

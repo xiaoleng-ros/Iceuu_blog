@@ -153,56 +153,6 @@ const TableHeader = ({
 );
 
 /**
- * 表格行组件
- * 采用日系动漫风格设计
- * @param props - 行数据和配置
- * @returns 表格行渲染
- */
-const TableRow = ({
-  blog,
-  columns,
-  selectedIds,
-  onSelect
-}: {
-  blog: Blog;
-  columns: ColumnConfig<Blog>[];
-  selectedIds: string[];
-  onSelect?: (id: string) => void;
-}) => (
-  <tr 
-    className={cn(
-      "hover:bg-gradient-to-r hover:from-[#FFF5F8]/30 hover:via-[#F8FCFF]/30 hover:to-[#F5FFF8]/30 transition-all duration-200 group border-b border-[#F5F5F5]",
-      selectedIds.includes(blog.id) && "bg-gradient-to-r from-[#7EB6E8]/5 to-[#FFB5C5]/5"
-    )}
-  >
-    {onSelect && (
-      <td className="px-6 py-4">
-        <label className="flex items-center cursor-pointer">
-          <input 
-            type="checkbox" 
-            className="w-4 h-4 rounded-lg border-2 border-[#E0E0E0] text-[#7EB6E8] focus:ring-[#7EB6E8]/20 focus:ring-offset-0 transition-all cursor-pointer"
-            checked={selectedIds.includes(blog.id)}
-            onChange={() => onSelect(blog.id)}
-          />
-        </label>
-      </td>
-    )}
-    {columns.map((col) => (
-      <td 
-        key={`${blog.id}-${col.key}`}
-        className={cn(
-          "px-6 py-4",
-          col.align === 'center' && "text-center",
-          col.align === 'right' && "text-right"
-        )}
-      >
-        {col.render(blog)}
-      </td>
-    ))}
-  </tr>
-);
-
-/**
  * 博客列表表格组件
  * 采用日系动漫风格设计，柔和光影与轻盈动效
  * @param props - 表格相关的属性

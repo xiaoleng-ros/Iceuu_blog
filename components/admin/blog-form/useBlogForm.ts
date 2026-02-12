@@ -57,15 +57,26 @@ function useBlogFormState(categories: string[]) {
 }
 
 /**
+ * 草稿存储配置接口
+ */
+interface BlogFormStorageConfig {
+  isEditing: boolean;
+  initialData: BlogInitialData | undefined;
+  formData: FormData;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  categories: string[];
+}
+
+/**
  * 管理草稿存储逻辑的 Hook
  */
-function useBlogFormStorage(
-  isEditing: boolean, 
-  initialData: BlogInitialData | undefined, 
-  formData: FormData, 
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>,
-  categories: string[]
-) {
+function useBlogFormStorage({
+  isEditing,
+  initialData,
+  formData,
+  setFormData,
+  categories
+}: BlogFormStorageConfig) {
   const STORAGE_KEY = useMemo(() => isEditing ? `blog_edit_${initialData?.id}` : 'blog_new_draft', [isEditing, initialData?.id]);
 
   // 初始化数据
@@ -266,7 +277,13 @@ export function useBlogForm({ initialData, isEditing, categories }: UseBlogFormP
     formData, setFormData
   } = useBlogFormState(categories);
 
-  const { clearStorage } = useBlogFormStorage(isEditing, initialData, formData, setFormData, categories);
+  const { clearStorage } = useBlogFormStorage({
+    isEditing,
+    initialData,
+    formData,
+    setFormData,
+    categories
+  });
 
   const { handleImageUpload } = useBlogFormUpload({
     setFormData,
