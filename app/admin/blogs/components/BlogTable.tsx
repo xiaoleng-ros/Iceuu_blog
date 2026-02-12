@@ -31,6 +31,7 @@ interface BlogTableProps {
 
 /**
  * 排序指示器组件
+ * 采用日系动漫风格设计
  * @param props - 排序配置和列键
  * @returns 排序图标渲染
  */
@@ -47,19 +48,19 @@ const SortIndicator = ({
   return (
     <span className="inline-flex flex-col ml-2 align-middle gap-[2px] relative group/indicator">
       <span className={cn(
-        "text-[9px] leading-none transition-colors duration-200 select-none",
-        config?.direction === 'asc' ? "text-[#165DFF] scale-110" : "text-[#C9CDD4] group-hover/indicator:text-[#86909C]"
+        "text-[9px] leading-none transition-all duration-200 select-none",
+        config?.direction === 'asc' ? "text-[#7EB6E8] scale-125" : "text-[#D4D4D4] group-hover/indicator:text-[#9B9B9B]"
       )}>
         ▲
       </span>
       <span className={cn(
-        "text-[9px] leading-none transition-colors duration-200 select-none",
-        config?.direction === 'desc' ? "text-[#165DFF] scale-110" : "text-[#C9CDD4] group-hover/indicator:text-[#86909C]"
+        "text-[9px] leading-none transition-all duration-200 select-none",
+        config?.direction === 'desc' ? "text-[#7EB6E8] scale-125" : "text-[#D4D4D4] group-hover/indicator:text-[#9B9B9B]"
       )}>
         ▼
       </span>
       {sortConfigs.length > 1 && orderIndex > -1 && (
-        <span className="absolute -right-3.5 top-1/2 -translate-y-1/2 text-[8px] text-[#165DFF] font-black bg-white rounded-full w-3 h-3 flex items-center justify-center border border-[#165DFF]/20 shadow-sm z-10">
+        <span className="absolute -right-3.5 top-1/2 -translate-y-1/2 text-[8px] text-[#7EB6E8] font-bold bg-gradient-to-br from-[#7EB6E8]/10 to-[#FFB5C5]/10 rounded-full w-4 h-4 flex items-center justify-center border border-[#7EB6E8]/20 shadow-sm z-10">
           {orderIndex + 1}
         </span>
       )}
@@ -69,19 +70,24 @@ const SortIndicator = ({
 
 /**
  * 加载遮罩层组件
+ * 采用日系动漫风格设计
  * @returns 加载动画渲染
  */
 const LoadingOverlay = () => (
-  <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-30 flex items-center justify-center animate-in fade-in duration-300">
-    <div className="bg-white/80 p-4 rounded-2xl shadow-xl border border-[#F2F3F5] flex flex-col items-center gap-3">
-      <Loader2 className="w-8 h-8 animate-spin text-[#165DFF]" />
-      <span className="text-sm font-medium text-[#4E5969]">正在加载内容...</span>
+  <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-30 flex items-center justify-center animate-in fade-in duration-300">
+    <div className="bg-white/90 backdrop-blur-xl p-6 rounded-3xl shadow-[0_8px_32px_rgba(126,182,232,0.15)] border border-[#FFB5C5]/20 flex flex-col items-center gap-4">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#7EB6E8] to-[#FFB5C5] rounded-full blur-md opacity-30 animate-pulse" />
+        <Loader2 className="w-10 h-10 animate-spin text-[#7EB6E8] relative z-10" />
+      </div>
+      <span className="text-sm font-medium text-[#6B6B6B]">正在加载内容...</span>
     </div>
   </div>
 );
 
 /**
  * 表格头部组件
+ * 采用日系动漫风格设计
  * @param props - 头部配置和回调
  * @returns 表头渲染
  */
@@ -100,16 +106,18 @@ const TableHeader = ({
   sortConfigs: SortConfig[];
   onSort?: (key: keyof Blog, multiSort: boolean) => void;
 }) => (
-  <thead className="text-[13px] text-[#4E5969] font-bold bg-[#F9FBFF]/50 border-b border-[#F2F3F5]">
+  <thead className="text-[13px] text-[#6B6B6B] font-medium bg-gradient-to-r from-[#FFF5F8]/50 via-[#F8FCFF]/50 to-[#F5FFF8]/50">
     <tr>
       {onSelectAll && (
-        <th scope="col" className="px-6 py-4 w-10">
-          <input 
-            type="checkbox" 
-            className="rounded border-[#E5E6EB] text-[#165DFF] focus:ring-[#165DFF]/20"
-            checked={blogs.length > 0 && selectedIds.length === blogs.length}
-            onChange={onSelectAll}
-          />
+        <th scope="col" className="px-6 py-5 w-10">
+          <label className="flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="w-4 h-4 rounded-lg border-2 border-[#E0E0E0] text-[#7EB6E8] focus:ring-[#7EB6E8]/20 focus:ring-offset-0 transition-all cursor-pointer"
+              checked={blogs.length > 0 && selectedIds.length === blogs.length}
+              onChange={onSelectAll}
+            />
+          </label>
         </th>
       )}
       {columns.map((col) => (
@@ -117,8 +125,8 @@ const TableHeader = ({
           key={col.key}
           scope="col" 
           className={cn(
-            "px-6 py-4 font-bold transition-colors",
-            col.sortable && "cursor-pointer hover:bg-[#F2F3F5]",
+            "px-6 py-5 font-medium transition-all duration-200",
+            col.sortable && "cursor-pointer hover:bg-white/50",
             col.align === 'center' && "text-center",
             col.align === 'right' && "text-right"
           )}
@@ -146,6 +154,7 @@ const TableHeader = ({
 
 /**
  * 表格行组件
+ * 采用日系动漫风格设计
  * @param props - 行数据和配置
  * @returns 表格行渲染
  */
@@ -162,18 +171,20 @@ const TableRow = ({
 }) => (
   <tr 
     className={cn(
-      "hover:bg-[#F9FBFF] transition-colors group",
-      selectedIds.includes(blog.id) && "bg-[#F9FBFF]"
+      "hover:bg-gradient-to-r hover:from-[#FFF5F8]/30 hover:via-[#F8FCFF]/30 hover:to-[#F5FFF8]/30 transition-all duration-200 group border-b border-[#F5F5F5]",
+      selectedIds.includes(blog.id) && "bg-gradient-to-r from-[#7EB6E8]/5 to-[#FFB5C5]/5"
     )}
   >
     {onSelect && (
       <td className="px-6 py-4">
-        <input 
-          type="checkbox" 
-          className="rounded border-[#E5E6EB] text-[#165DFF] focus:ring-[#165DFF]/20"
-          checked={selectedIds.includes(blog.id)}
-          onChange={() => onSelect(blog.id)}
-        />
+        <label className="flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="w-4 h-4 rounded-lg border-2 border-[#E0E0E0] text-[#7EB6E8] focus:ring-[#7EB6E8]/20 focus:ring-offset-0 transition-all cursor-pointer"
+            checked={selectedIds.includes(blog.id)}
+            onChange={() => onSelect(blog.id)}
+          />
+        </label>
       </td>
     )}
     {columns.map((col) => (
@@ -193,6 +204,7 @@ const TableRow = ({
 
 /**
  * 博客列表表格组件
+ * 采用日系动漫风格设计，柔和光影与轻盈动效
  * @param props - 表格相关的属性
  * @returns 表格渲染结果
  */
@@ -210,10 +222,9 @@ export function BlogTable({
   
   return (
     <div className="relative">
-      {/* Loading Overlay */}
       {loading && blogs.length > 0 && <LoadingOverlay />}
 
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#E5E6EB] scrollbar-track-transparent">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#E0E0E0] scrollbar-track-transparent">
         <table className="w-full text-sm text-left border-collapse">
           <TableHeader 
             columns={columns}
@@ -223,7 +234,7 @@ export function BlogTable({
             sortConfigs={sortConfigs}
             onSort={onSort}
           />
-          <tbody className="divide-y divide-[#F2F3F5]">
+          <tbody>
             {!loading && blogs.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (onSelectAll ? 1 : 0)}>
@@ -231,14 +242,40 @@ export function BlogTable({
                 </td>
               </tr>
             ) : (
-              blogs.map((blog) => (
-                <TableRow 
+              blogs.map((blog, index) => (
+                <tr 
                   key={blog.id}
-                  blog={blog}
-                  columns={columns}
-                  selectedIds={selectedIds}
-                  onSelect={onSelect}
-                />
+                  className={cn(
+                    "hover:bg-gradient-to-r hover:from-[#FFF5F8]/30 hover:via-[#F8FCFF]/30 hover:to-[#F5FFF8]/30 transition-all duration-200 group border-b border-[#F5F5F5]",
+                    selectedIds.includes(blog.id) && "bg-gradient-to-r from-[#7EB6E8]/5 to-[#FFB5C5]/5"
+                  )}
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  {onSelect && (
+                    <td className="px-6 py-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded-lg border-2 border-[#E0E0E0] text-[#7EB6E8] focus:ring-[#7EB6E8]/20 focus:ring-offset-0 transition-all cursor-pointer"
+                          checked={selectedIds.includes(blog.id)}
+                          onChange={() => onSelect(blog.id)}
+                        />
+                      </label>
+                    </td>
+                  )}
+                  {columns.map((col) => (
+                    <td 
+                      key={`${blog.id}-${col.key}`}
+                      className={cn(
+                        "px-6 py-4",
+                        col.align === 'center' && "text-center",
+                        col.align === 'right' && "text-right"
+                      )}
+                    >
+                      {col.render(blog)}
+                    </td>
+                  ))}
+                </tr>
               ))
             )}
           </tbody>

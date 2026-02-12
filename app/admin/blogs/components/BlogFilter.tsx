@@ -25,6 +25,7 @@ interface BlogFilterProps {
 
 /**
  * 博客列表筛选组件
+ * 采用日系动漫风格设计
  * @param props - 筛选相关的属性
  * @returns 筛选区域渲染结果
  */
@@ -41,15 +42,18 @@ export function BlogFilter({
   onExport
 }: BlogFilterProps) {
   return (
-    <Card className="border border-[#F2F3F5] shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[16px] bg-white relative z-20">
-      <CardContent className="p-5">
+    <Card className="border-0 rounded-3xl bg-white/70 backdrop-blur-xl relative z-20 shadow-[0_4px_30px_rgba(126,182,232,0.06)] overflow-hidden">
+      {/* 顶部装饰渐变 */}
+      <div className="h-1 bg-gradient-to-r from-[#7EB6E8] via-[#FFB5C5] to-[#C9A8E0]" />
+      
+      <CardContent className="p-6">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
           <div className="flex items-center gap-2 w-full sm:w-[180px]">
-            <span className="text-[#4E5969] text-sm whitespace-nowrap min-w-[32px]">标题:</span>
+            <span className="text-[#6B6B6B] text-sm whitespace-nowrap min-w-[32px] font-medium">标题:</span>
             <div className="relative w-full">
               <Input 
                 placeholder="请输入关键词" 
-                className="h-8 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-[#165DFF]/10 transition-all text-xs rounded-lg w-full pr-7"
+                className="h-9 border-[#E8E8E8] focus:border-[#7EB6E8] focus:ring-[#7EB6E8]/15 transition-all text-xs rounded-xl w-full pr-7 bg-white/50"
                 value={filters.title}
                 onChange={(e) => onFilterChange({ title: e.target.value })}
                 onKeyDown={(e) => e.key === 'Enter' && onSearch()}
@@ -57,7 +61,7 @@ export function BlogFilter({
               {filters.title && (
                 <button 
                   onClick={() => onFilterChange({ title: '' })}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#C9CDD4] hover:text-[#86909C] transition-colors"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#C0C0C0] hover:text-[#7EB6E8] transition-colors"
                 >
                   <XCircle className="w-3.5 h-3.5" />
                 </button>
@@ -93,9 +97,9 @@ export function BlogFilter({
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button 
-              className="bg-[#E8F3FF] text-[#165DFF] hover:bg-[#D1E9FF] h-8 px-4 border border-[#165DFF]/20 rounded-lg font-bold text-xs transition-all active:scale-95 shadow-none flex items-center gap-1.5"
+              className="bg-gradient-to-r from-[#7EB6E8] to-[#5A9BD5] text-white hover:shadow-lg hover:shadow-[#7EB6E8]/25 h-9 px-5 rounded-xl font-medium text-xs transition-all active:scale-95 flex items-center gap-2 border-0"
               onClick={onSearch}
               disabled={loading}
             >
@@ -104,7 +108,7 @@ export function BlogFilter({
             </Button>
             <Button 
               variant="outline"
-              className="h-8 px-4 border-[#E5E6EB] text-[#4E5969] hover:bg-[#F2F3F5] hover:text-[#1D2129] rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-none text-xs whitespace-nowrap"
+              className="h-9 px-4 border-[#E8E8E8] text-[#6B6B6B] hover:bg-white/80 hover:text-[#7EB6E8] hover:border-[#7EB6E8]/30 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-none text-xs whitespace-nowrap"
               onClick={onReset}
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -115,7 +119,7 @@ export function BlogFilter({
           {showExport && onExport && (
             <div className="ml-auto flex items-center gap-3">
               <Button 
-                className="bg-[#EFFFF0] text-[#00B42A] hover:bg-[#D1FFD6] h-8 px-4 border border-[#00B42A]/20 rounded-lg transition-all active:scale-95 shadow-none font-bold text-xs flex items-center justify-center whitespace-nowrap"
+                className="bg-gradient-to-r from-[#98D8AA] to-[#7BC98E] text-white hover:shadow-lg hover:shadow-[#98D8AA]/25 h-9 px-5 rounded-xl transition-all active:scale-95 font-medium text-xs flex items-center justify-center whitespace-nowrap border-0"
                 onClick={onExport}
               >
                 导出文章

@@ -2,48 +2,109 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  /* Updated Color Palette - High End Design */
-  --color-primary: #165DFF; /* Deep Ocean Blue */
-  --color-primary-dark: #0E42D2;
-  --color-primary-light: #E8F3FF;
+  /* 日系动漫马卡龙色系 - 清新柔和 */
+  --color-primary: #7EB6E8; /* 天空蓝 - 柔和治愈 */
+  --color-primary-dark: #5A9BD5;
+  --color-primary-light: #E8F4FC;
   
-  --color-secondary: #ffffff;
+  --color-secondary: #FFB5C5; /* 樱花粉 - 甜美浪漫 */
+  --color-secondary-light: #FFF0F3;
   
-  /* Functional Colors */
-  --color-success: #36D399; /* Mint Green */
-  --color-warning: #FFAB00; /* Warm Lemon */
-  --color-danger: #F53F3F; /* Standard Danger */
-  --color-media: #926BFF; /* Fog Purple */
+  /* 功能色 - 马卡龙风格 */
+  --color-success: #98D8AA; /* 抹茶绿 - 清新自然 */
+  --color-warning: #FFD699; /* 奶油黄 - 温暖治愈 */
+  --color-danger: #FF9B9B; /* 草莓红 - 柔和警示 */
+  --color-media: #C9A8E0; /* 薰衣草紫 - 梦幻优雅 */
   
-  /* Neutral Colors */
-  --color-background: #F5F7FA; /* Light Grey Blue */
+  /* 中性色 - 柔和通透 */
+  --color-background: #FDF8F5; /* 奶油白底色 */
   --color-surface: #FFFFFF;
-  --color-sidebar: #1D2129; /* Deep Space Black */
+  --color-sidebar: #FAF5F2; /* 温暖米白 */
   
-  --color-text-main: #1D2129; /* Title/Important */
-  --color-text-body: #4E5969; /* Body/Desc */
-  --color-text-muted: #86909C; /* Aux/Hint */
+  --color-text-main: #4A4A4A; /* 柔和深灰 */
+  --color-text-body: #6B6B6B; /* 正文灰 */
+  --color-text-muted: #9B9B9B; /* 辅助灰 */
   
-  /* Chinese-optimized Font Stack */
-  --font-sans: "PingFang SC", "Microsoft YaHei", "微软雅黑", "Hiragino Sans GB", "Heiti SC", system-ui, -apple-system, sans-serif;
+  /* 日系动漫特色色 */
+  --color-sakura: #FFB7C5;
+  --color-sky: #87CEEB;
+  --color-lavender: #E6E6FA;
+  --color-mint: #B2F5EA;
+  --color-peach: #FFDAB9;
+  --color-lilac: #DDA0DD;
+  
+  /* 日系字体 */
+  --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "微软雅黑", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
   --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
   --font-mono: "Fira Code", "Menlo", "Monaco", "Courier New", monospace;
 
-  /* Custom Animations */
+  /* 日系动漫动画 */
   @keyframes breathe {
-    0% { opacity: 0.7; }
-    50% { opacity: 1; }
-    100% { opacity: 0.7; }
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
   }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  @keyframes sparkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  
   @keyframes progress-loading {
     0% { transform: translateX(-100%) scaleX(0.2); }
     50% { transform: translateX(0) scaleX(0.5); }
     100% { transform: translateX(100%) scaleX(0.2); }
   }
+  
+  @keyframes gentle-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(126, 182, 232, 0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(126, 182, 232, 0); }
+  }
+  
+  @keyframes slide-up-fade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes cloud-drift {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(20px); }
+  }
 }
 
 .animate-progress-loading {
   animation: progress-loading 1.5s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.animate-gentle-pulse {
+  animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+.animate-slide-up-fade {
+  animation: slide-up-fade 0.4s ease-out forwards;
 }
 
 :root {
@@ -57,41 +118,123 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-/* Global Transitions */
+/* 全局过渡动画 */
 .btn, .card, button, a {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Glassmorphism Utilities */
+/* 日系毛玻璃效果 */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(12px);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px rgba(126, 182, 232, 0.08),
+    0 1px 3px rgba(126, 182, 232, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 40px rgba(126, 182, 232, 0.12),
+    0 4px 12px rgba(126, 182, 232, 0.08);
 }
 
-/* Typography Overrides for Chinese */
+/* 日系动漫风格卡片 */
+.anime-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,248,245,0.9) 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 183, 197, 0.2);
+  box-shadow: 
+    0 4px 20px rgba(255, 183, 197, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.anime-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+}
+
+.anime-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 
+    0 16px 48px rgba(255, 183, 197, 0.15),
+    0 8px 20px rgba(126, 182, 232, 0.08);
+  border-color: rgba(255, 183, 197, 0.4);
+}
+
+/* 柔和发光效果 */
+.soft-glow {
+  box-shadow: 
+    0 0 20px rgba(126, 182, 232, 0.15),
+    0 0 40px rgba(126, 182, 232, 0.1);
+}
+
+.sakura-glow {
+  box-shadow: 
+    0 0 20px rgba(255, 183, 197, 0.2),
+    0 0 40px rgba(255, 183, 197, 0.1);
+}
+
+/* 日系按钮样式 */
+.anime-btn {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, #FFFFFF 100%);
+  border: 1px solid rgba(126, 182, 232, 0.3);
+  border-radius: 12px;
+  color: var(--color-primary-dark);
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.anime-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.anime-btn:hover::after {
+  left: 100%;
+}
+
+.anime-btn:hover {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--color-primary-light) 100%);
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 16px rgba(126, 182, 232, 0.25);
+  transform: translateY(-2px);
+}
+
+/* 标题样式 - 纤细优雅 */
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-text-main);
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 p {
@@ -100,44 +243,108 @@ p {
   text-align: justify;
 }
 
-/* Custom Scrollbar for Dropdowns and Menus */
+/* 自定义滚动条 - 日系柔和 */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 183, 197, 0.1);
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #E5E6EB;
+  background: linear-gradient(180deg, var(--color-sakura), var(--color-primary));
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #C9CDD4;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-sakura));
 }
 
-/* Animation Utilities */
+/* 动画工具类 */
 .animate-breathe {
-  animation: breathe 2s infinite ease-in-out;
+  animation: breathe 3s infinite ease-in-out;
 }
 
-/* Scrollbar Customization */
+/* 全局滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 183, 197, 0.05);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C9CDD4;
-  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(126, 182, 232, 0.3), rgba(255, 183, 197, 0.3));
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #86909C;
+  background: linear-gradient(180deg, rgba(126, 182, 232, 0.5), rgba(255, 183, 197, 0.5));
+}
+
+/* 日系动漫风格输入框 */
+.anime-input {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(126, 182, 232, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.anime-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(126, 182, 232, 0.15);
+  background: rgba(255, 255, 255, 1);
+}
+
+/* 星星装饰 */
+.star-decoration {
+  position: relative;
+}
+
+.star-decoration::before {
+  content: '✦';
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  font-size: 10px;
+  color: var(--color-warning);
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* 云朵背景装饰 */
+.cloud-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.cloud-bg::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: -5%;
+  width: 200px;
+  height: 80px;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.8) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: cloud-drift 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* 渐变文字 */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-sakura));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 柔和分割线 */
+.soft-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(126, 182, 232, 0.3), transparent);
 }

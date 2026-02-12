@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 
 /**
  * 通用卡片容器组件
+ * 采用日系动漫风格设计，柔和光影与梦幻氛围
  * @param {React.HTMLAttributes<HTMLDivElement>} props - 组件属性
  * @param {React.Ref<HTMLDivElement>} ref - 转发的引用
  * @returns {JSX.Element} - 返回卡片容器 JSX
@@ -14,7 +15,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      "rounded-2xl border border-white/50 bg-white/70 backdrop-blur-xl text-card-foreground shadow-[0_4px_20px_rgba(126,182,232,0.06)] transition-all duration-300",
       className
     )}
     {...props}
@@ -53,7 +54,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-lg font-medium leading-none tracking-wide text-[#4A4A4A]",
       className
     )}
     {...props}

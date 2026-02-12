@@ -25,7 +25,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     header: 'ID',
     width: '80px',
     render: (blog) => (
-      <span className="text-xs text-[#86909C] font-mono">
+      <span className="text-xs text-[#9B9B9B] font-mono">
         {blog.id.substring(0, 8)}...
       </span>
     )
@@ -34,7 +34,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     key: 'title',
     header: '标题',
     render: (blog) => (
-      <span className="font-bold text-[#1D2129] whitespace-nowrap truncate block max-w-xs">
+      <span className="font-medium text-[#4A4A4A] whitespace-nowrap truncate block max-w-xs">
         {blog.title}
       </span>
     )
@@ -43,7 +43,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     key: 'excerpt',
     header: '摘要',
     render: (blog) => (
-      <span className="text-[#86909C] max-w-xs truncate text-xs block">
+      <span className="text-[#9B9B9B] max-w-xs truncate text-xs block">
         {blog.excerpt || '-'}
       </span>
     )
@@ -52,7 +52,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     key: 'category',
     header: '分类',
     render: (blog) => blog.category ? (
-      <span className="bg-[#F2F3F5] text-[#4E5969] px-2.5 py-1 rounded-md text-xs font-medium">
+      <span className="bg-gradient-to-r from-[#FFF5F8] to-[#F8FCFF] text-[#7EB6E8] px-3 py-1 rounded-lg text-xs font-medium border border-[#7EB6E8]/10">
         {blog.category}
       </span>
     ) : '-'
@@ -64,7 +64,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
       <div className="flex flex-wrap gap-1.5">
         {blog.tags && blog.tags.length > 0 ? (
           blog.tags.map(tag => (
-            <span key={tag} className="text-[#165DFF] text-xs font-medium bg-[#165DFF]/5 px-2 py-0.5 rounded">#{tag}</span>
+            <span key={tag} className="text-[#C9A8E0] text-xs font-medium bg-[#C9A8E0]/10 px-2 py-0.5 rounded-lg">#{tag}</span>
           ))
         ) : '-'}
       </div>
@@ -75,24 +75,26 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     header: '浏览量',
     align: 'center',
     sortable: true,
-    render: (blog) => <span className="text-[#4E5969] font-medium">{blog.views || 0}</span>
+    render: (blog) => <span className="text-[#6B6B6B] font-medium">{blog.views || 0}</span>
   },
   {
     key: 'comments_count',
     header: '评论数量',
     align: 'center',
     sortable: true,
-    render: (blog) => <span className="text-[#4E5969] font-medium">{blog.comments_count || 0}</span>
+    render: (blog) => <span className="text-[#6B6B6B] font-medium">{blog.comments_count || 0}</span>
   },
   {
     key: 'status',
     header: '状态',
     align: 'center',
     render: (blog) => (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 mx-auto w-fit ${
-        blog.draft ? 'bg-[#FFF7E8] text-[#FF7D00]' : 'bg-[#E8FFEA] text-[#00B42A]'
+      <span className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 mx-auto w-fit ${
+        blog.draft 
+          ? 'bg-gradient-to-r from-[#FFF8E8] to-[#FFF5F0] text-[#FFD699] border border-[#FFD699]/20' 
+          : 'bg-gradient-to-r from-[#E8FFF0] to-[#F0FFF4] text-[#98D8AA] border border-[#98D8AA]/20'
       }`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${blog.draft ? 'bg-[#FF7D00]' : 'bg-[#00B42A]'}`} />
+        <span className={`w-1.5 h-1.5 rounded-full ${blog.draft ? 'bg-[#FFD699]' : 'bg-[#98D8AA]'}`} />
         {blog.draft ? '草稿' : '已发布'}
       </span>
     )
@@ -102,7 +104,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     header: '发布时间',
     align: 'center',
     sortable: true,
-    render: (blog) => <span className="text-[#86909C] text-xs whitespace-nowrap">{formatDate(blog.created_at)}</span>
+    render: (blog) => <span className="text-[#9B9B9B] text-xs whitespace-nowrap">{formatDate(blog.created_at)}</span>
   },
   {
     key: 'actions',
@@ -111,12 +113,12 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
     render: (blog) => (
       <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <Link href={`/blog/${blog.id}`} target="_blank">
-          <Button variant="ghost" size="icon" title="预览" className="text-[#86909C] hover:text-[#165DFF] hover:bg-[#165DFF]/10 h-8 w-8 rounded-lg">
+          <Button variant="ghost" size="icon" title="预览" className="text-[#9B9B9B] hover:text-[#7EB6E8] hover:bg-[#7EB6E8]/10 h-8 w-8 rounded-xl">
             <Eye className="h-4 w-4" />
           </Button>
         </Link>
         <Link href={`/admin/blogs/${blog.id}`}>
-          <Button variant="ghost" size="icon" title="编辑" className="text-[#86909C] hover:text-[#165DFF] hover:bg-[#165DFF]/10 h-8 w-8 rounded-lg">
+          <Button variant="ghost" size="icon" title="编辑" className="text-[#9B9B9B] hover:text-[#7EB6E8] hover:bg-[#7EB6E8]/10 h-8 w-8 rounded-xl">
             <Edit className="h-4 w-4" />
           </Button>
         </Link>
@@ -124,7 +126,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
           variant="ghost" 
           size="icon" 
           title="删除"
-          className="text-[#86909C] hover:text-[#F53F3F] hover:bg-[#F53F3F]/10 h-8 w-8 rounded-lg"
+          className="text-[#9B9B9B] hover:text-[#FF9B9B] hover:bg-[#FF9B9B]/10 h-8 w-8 rounded-xl"
           onClick={() => onDelete(blog.id)}
         >
           <Trash2 className="h-4 w-4" />
@@ -137,6 +139,7 @@ const getColumns = (onDelete: (id: string) => void): ColumnConfig<Blog>[] => [
 /**
  * 博客列表页面组件
  * 展示已发布文章列表，提供筛选、排序、导出和删除功能
+ * 采用日系动漫风格设计
  * @returns 页面渲染结果
  */
 export default function BlogListPage() {
@@ -289,7 +292,10 @@ export default function BlogListPage() {
         onExport={handleExport}
       />
 
-      <div className="bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#F2F3F5] overflow-hidden">
+      <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-[0_4px_30px_rgba(126,182,232,0.06)] border border-white/50 overflow-hidden">
+        {/* 顶部装饰渐变 */}
+        <div className="h-1 bg-gradient-to-r from-[#7EB6E8] via-[#FFB5C5] to-[#C9A8E0]" />
+        
         <BlogTable 
           blogs={paginatedBlogs}
           loading={loading}

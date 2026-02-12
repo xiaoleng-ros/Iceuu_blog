@@ -265,7 +265,8 @@ function AvatarUploadField({
       <Label className="text-sm font-bold text-[#4E5969]">头像</Label>
       <div className="flex gap-3">
         <div className="relative flex-1 group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full overflow-hidden border border-[#E5E6EB]">
+          {/* 头像图标容器 - 添加 z-10 确保显示在最上层 */}
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full overflow-hidden border border-[#E5E6EB] bg-[#F2F3F5] z-10">
             {avatarUrl ? (
               <div className="w-full h-full relative">
                 <Image 
@@ -285,7 +286,7 @@ function AvatarUploadField({
             value={avatarUrl}
             onChange={onProfileChange}
             placeholder="https://example.com/avatar.png"
-            className="h-11 pl-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+            className="h-11 pl-12 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
           />
         </div>
         <input
@@ -514,6 +515,9 @@ function ProfileSection({
 /**
  * 社交链接输入项组件
  */
+/**
+ * 社交链接输入项组件
+ */
 function SocialLinkField({
   id,
   name,
@@ -535,8 +539,9 @@ function SocialLinkField({
     <div className="space-y-2">
       <Label htmlFor={id} className="text-sm font-bold text-[#4E5969]">{label}</Label>
       <div className="relative group">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
-          <Image src={icon} alt={label} width={16} height={16} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
+        {/* 图标容器 - 添加 z-10 确保图标显示在最上层 */}
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg bg-[#F2F3F5] group-focus-within:bg-[#165DFF]/10 transition-colors z-10">
+          <Image src={icon} alt={label} width={18} height={18} className="opacity-70 group-focus-within:opacity-100 transition-opacity" />
         </div>
         <Input
           id={id}
@@ -544,7 +549,7 @@ function SocialLinkField({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="pl-13 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
+          className="pl-14 h-11 border-[#E5E6EB] focus:border-[#165DFF] focus:ring-1 focus:ring-[#165DFF]/20 rounded-xl transition-all bg-[#F9FBFF]/30"
         />
       </div>
     </div>
