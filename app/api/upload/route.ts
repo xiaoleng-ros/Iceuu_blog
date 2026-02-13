@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { createClientWithToken } from '@/lib/supabase';
-import { uploadImageToGitHub, getJsDelivrUrl, deleteFileFromGitHub } from '@/lib/github';
+import { uploadImageToGitHub, getJsDelivrUrl, deleteFileFromGitHub, GitHubConfig } from '@/lib/github';
 
 /**
  * 获取 GitHub 配置
  * @param requestSupabase - Supabase 客户端
  * @returns GitHub 配置对象或 undefined
  */
-async function getGitHubConfig(requestSupabase: any) {
+async function getGitHubConfig(requestSupabase: SupabaseClient): Promise<GitHubConfig | undefined> {
   const { data: configData } = await requestSupabase
     .from('site_config')
     .select('key, value')
@@ -20,10 +21,14 @@ async function getGitHubConfig(requestSupabase: any) {
 
   if (!dbConfig?.github_token) return undefined;
 
+  const owner = dbConfig.github_owner;
+  const repo = dbConfig.github_repo;
+  if (!owner || !repo) return undefined;
+
   return {
     token: dbConfig.github_token,
-    owner: dbConfig.github_owner,
-    repo: dbConfig.github_repo,
+    owner,
+    repo,
     branch: dbConfig.github_branch || 'main',
   };
 }

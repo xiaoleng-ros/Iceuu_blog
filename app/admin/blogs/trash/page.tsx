@@ -13,6 +13,14 @@ import { BlogFilter } from '../components/BlogFilter';
 import { BlogTable, ColumnConfig } from '../components/BlogTable';
 import { BlogPagination } from '../components/BlogPagination';
 
+interface ConfirmOptions {
+  title: string;
+  desc: string;
+  text: string;
+  variant: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+}
+
 /**
  * 获取回收站表格列定义
  * @param onRestore - 恢复操作回调
@@ -123,7 +131,7 @@ export default function TrashPage() {
     setToast({ message, type });
   }, []);
 
-  const handleAction = useCallback(async (url: string, method: string, successMsg: string, body?: any) => {
+  const handleAction = useCallback(async (url: string, method: string, successMsg: string, body?: { ids?: string[]; updates?: Record<string, unknown> }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -148,14 +156,14 @@ export default function TrashPage() {
     }
   }, [setBlogs, showToast]);
 
-  const openConfirm = useCallback((title: string, desc: string, text: string, variant: any, onConfirm: () => void) => {
+  const openConfirm = useCallback(({ title, desc, text, variant, onConfirm }: ConfirmOptions) => {
     setConfirmConfig({ isOpen: true, title, description: desc, confirmText: text, variant, onConfirm });
   }, []);
 
-  const handleRestore = useCallback((id: string) => openConfirm('确认恢复文章', '确定要恢复这篇文章吗？恢复后文章将重新出现在已发布列表中。', '确认恢复', 'info', () => handleAction(`/api/blog/${id}?restore=true`, 'DELETE', '文章已恢复')), [openConfirm, handleAction]);
-  const handlePermanentDelete = useCallback((id: string) => openConfirm('确认彻底删除', '确定要彻底删除这篇文章吗？此操作不可撤销，文章数据将永久丢失！', '彻底删除', 'danger', () => handleAction(`/api/blog/${id}?permanent=true`, 'DELETE', '文章已彻底删除')), [openConfirm, handleAction]);
-  const handleBatchRestore = () => openConfirm('确认批量恢复', `确定要恢复选中的 ${selectedIds.length} 篇文章吗？`, '批量恢复', 'info', () => handleAction('/api/api/blog', 'PATCH', `已成功恢复 ${selectedIds.length} 篇文章`, { ids: selectedIds, updates: { is_deleted: false, deleted_at: null } }));
-  const handleBatchPermanentDelete = () => openConfirm('确认批量彻底删除', `确定要彻底删除选中的 ${selectedIds.length} 篇文章吗？此操作不可撤销！`, '批量彻底删除', 'danger', () => handleAction('/api/blog?permanent=true', 'DELETE', `已成功彻底删除 ${selectedIds.length} 篇文章`, { ids: selectedIds }));
+  const handleRestore = useCallback((id: string) => openConfirm({ title: '确认恢复文章', desc: '确定要恢复这篇文章吗？恢复后文章将重新出现在已发布列表中。', text: '确认恢复', variant: 'info', onConfirm: () => handleAction(`/api/blog/${id}?restore=true`, 'DELETE', '文章已恢复') }), [openConfirm, handleAction]);
+  const handlePermanentDelete = useCallback((id: string) => openConfirm({ title: '确认彻底删除', desc: '确定要彻底删除这篇文章吗？此操作不可撤销，文章数据将永久丢失！', text: '彻底删除', variant: 'danger', onConfirm: () => handleAction(`/api/blog/${id}?permanent=true`, 'DELETE', '文章已彻底删除') }), [openConfirm, handleAction]);
+  const handleBatchRestore = () => openConfirm({ title: '确认批量恢复', desc: `确定要恢复选中的 ${selectedIds.length} 篇文章吗？`, text: '批量恢复', variant: 'info', onConfirm: () => handleAction('/api/api/blog', 'PATCH', `已成功恢复 ${selectedIds.length} 篇文章`, { ids: selectedIds, updates: { is_deleted: false, deleted_at: null } }) });
+  const handleBatchPermanentDelete = () => openConfirm({ title: '确认批量彻底删除', desc: `确定要彻底删除选中的 ${selectedIds.length} 篇文章吗？此操作不可撤销！`, text: '批量彻底删除', variant: 'danger', onConfirm: () => handleAction('/api/blog?permanent=true', 'DELETE', `已成功彻底删除 ${selectedIds.length} 篇文章`, { ids: selectedIds }) });
 
   const columns = useMemo(() => getTrashColumns(handleRestore, handlePermanentDelete), [handleRestore, handlePermanentDelete]);
 

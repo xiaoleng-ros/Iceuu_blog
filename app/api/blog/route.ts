@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
+import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { supabase, createClientWithToken } from '@/lib/supabase';
 
 /**
  * 构建博客列表查询基础对象
+ * @param supabaseClient - Supabase 客户端实例
+ * @param category - 分类筛选
+ * @param tag - 标签筛选
+ * @returns 查询对象
  */
-function buildBaseQuery(supabaseClient: any, category: string | null, tag: string | null) {
+function buildBaseQuery(supabaseClient: SupabaseClient, category: string | null, tag: string | null) {
   let query = supabaseClient
     .from('blogs')
     .select('id, title, excerpt, cover_image, category, tags, created_at, draft', { count: 'exact' })
@@ -30,8 +35,16 @@ function getPaginationMeta(count: number | null, page: number, limit: number) {
 
 /**
  * 获取回收站中的博客
+ * @param supabaseClient - Supabase 客户端实例
+ * @param page - 页码
+ * @param limit - 每页数量
+ * @returns 博客数据、总数和错误信息
  */
-async function getDeletedBlogs(supabaseClient: any, page: number, limit: number) {
+async function getDeletedBlogs(
+  supabaseClient: SupabaseClient, 
+  page: number, 
+  limit: number
+): Promise<{ data: unknown[] | null; count: number; error: PostgrestError | null }> {
   try {
     const { data, error, count } = await supabaseClient
       .from('blogs')
@@ -43,11 +56,79 @@ async function getDeletedBlogs(supabaseClient: any, page: number, limit: number)
       return { data: [], count: 0, error: null };
     }
     
-    return { data, count, error };
+    return { data, count: count ?? 0, error };
   } catch (e) {
     console.error('获取已删除文章异常:', e);
-    return { data: [], count: 0, error: e };
+    return { data: null, count: 0, error: e as PostgrestError };
   }
+}
+
+/**
+ * 根据状态获取查询构建器
+ * @param query - 基础查询对象
+ * @param status - 状态筛选 (draft, published)
+ * @param hasToken - 是否有认证令牌
+ * @returns 配置后的查询对象
+ */
+function applyStatusFilter(query: ReturnType<typeof buildBaseQuery>, status: string | null, hasToken: boolean) {
+  if (status === 'draft') {
+    return query.eq('draft', true);
+  }
+  if (status === 'published') {
+    return query.eq('draft', false);
+  }
+  if (!hasToken) {
+    return query.eq('draft', false);
+  }
+  return query;
+}
+
+/**
+ * 获取回收站数据
+ */
+async function fetchDeletedBlogs(requestSupabase: SupabaseClient, page: number, limit: number) {
+  const { data, count, error } = await getDeletedBlogs(requestSupabase, page, limit);
+  if (error) {
+    return { data: [], meta: getPaginationMeta(count, page, limit), error: error.message };
+  }
+  return { data, meta: getPaginationMeta(count, page, limit), error: null };
+}
+
+/**
+ * 获取正常博客数据
+ */
+async function fetchNormalBlogs(params: {
+  requestSupabase: SupabaseClient;
+  category: string | null;
+  tag: string | null;
+  status: string | null;
+  hasToken: boolean;
+  page: number;
+  limit: number;
+}) {
+  const { requestSupabase, category, tag, status, hasToken, page, limit } = params;
+  
+  let query = buildBaseQuery(requestSupabase, category, tag);
+  query = query.or('is_deleted.is.null,is_deleted.eq.false');
+  query = applyStatusFilter(query, status, hasToken);
+
+  const { data, error, count } = await query.range((page - 1) * limit, page * limit - 1);
+
+  if (error && error.message.includes('is_deleted')) {
+    let retryQuery = buildBaseQuery(requestSupabase, category, tag);
+    retryQuery = applyStatusFilter(retryQuery, status, hasToken);
+    const { data: rData, error: rError, count: rCount } = await retryQuery.range((page - 1) * limit, page * limit - 1);
+    if (rError) {
+      return { data: [], meta: getPaginationMeta(rCount, page, limit), error: rError.message };
+    }
+    return { data: rData, meta: getPaginationMeta(rCount, page, limit), error: null };
+  }
+
+  if (error) {
+    return { data: [], meta: getPaginationMeta(count, page, limit), error: error.message };
+  }
+
+  return { data, meta: getPaginationMeta(count, page, limit), error: null };
 }
 
 /**
@@ -62,46 +143,25 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '10');
   const category = searchParams.get('category');
   const tag = searchParams.get('tag');
-  const status = searchParams.get('status'); // 'published', 'draft', 'deleted'
+  const status = searchParams.get('status');
   
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
   const requestSupabase = token ? createClientWithToken(token) : supabase;
+  const hasToken = !!token;
 
+  let result;
   if (status === 'deleted') {
-    const { data, count, error } = await getDeletedBlogs(requestSupabase, page, limit);
-    if (error) return NextResponse.json({ error: (error as any).message }, { status: 500 });
-    return NextResponse.json({ data, meta: getPaginationMeta(count, page, limit) });
+    result = await fetchDeletedBlogs(requestSupabase, page, limit);
+  } else {
+    result = await fetchNormalBlogs({ requestSupabase, category, tag, status, hasToken, page, limit });
   }
 
-  let query = buildBaseQuery(requestSupabase, category, tag);
-  query = query.or('is_deleted.is.null,is_deleted.eq.false');
-  
-  if (status === 'draft') {
-    query = query.eq('draft', true);
-  } else if (status === 'published') {
-    query = query.eq('draft', false);
-  } else if (!token) {
-    query = query.eq('draft', false);
+  if (result.error) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
   }
 
-  const { data, error, count } = await query.range((page - 1) * limit, page * limit - 1);
-
-  if (error) {
-    if (error.message.includes('is_deleted')) {
-      // 降级处理：重试不带 is_deleted 过滤的查询
-      let retryQuery = buildBaseQuery(requestSupabase, category, tag);
-      if (status === 'draft') retryQuery = retryQuery.eq('draft', true);
-      else if (status === 'published' || !token) retryQuery = retryQuery.eq('draft', false);
-      
-      const { data: rData, error: rError, count: rCount } = await retryQuery.range((page - 1) * limit, page * limit - 1);
-      if (rError) return NextResponse.json({ error: rError.message }, { status: 500 });
-      return NextResponse.json({ data: rData, meta: getPaginationMeta(rCount, page, limit) });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ data, meta: getPaginationMeta(count, page, limit) });
+  return NextResponse.json({ data: result.data, meta: result.meta });
 }
 
 /**
