@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, Mock } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SearchPage from './page';
 import { useSearch } from './hooks/useSearch';
@@ -42,7 +42,7 @@ vi.mock('@/lib/supabase', () => ({
 
 describe('SearchPage 搜索页面', () => {
   it('在加载状态下应显示加载动画', () => {
-    (useSearch as any).mockReturnValue({
+    (useSearch as Mock).mockReturnValue({
       query: 'test',
       results: [],
       loading: true,
@@ -57,7 +57,7 @@ describe('SearchPage 搜索页面', () => {
   });
 
   it('在无结果时应显示空状态提示', () => {
-    (useSearch as any).mockReturnValue({
+    (useSearch as Mock).mockReturnValue({
       query: 'test',
       results: [],
       loading: false,
@@ -92,7 +92,7 @@ describe('SearchPage 搜索页面', () => {
       },
     ];
 
-    (useSearch as any).mockReturnValue({
+    (useSearch as Mock).mockReturnValue({
       query: '测试',
       results: mockResults,
       loading: false,

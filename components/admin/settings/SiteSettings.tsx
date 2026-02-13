@@ -640,7 +640,7 @@ function SocialLinksSection({
           <SocialLinkField
             key={link.id}
             {...link}
-            value={(formData as any)[link.name]}
+            value={formData[link.name as keyof typeof formData]}
             onChange={handleChange}
           />
         ))}
